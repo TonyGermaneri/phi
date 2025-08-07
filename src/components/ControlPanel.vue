@@ -695,7 +695,7 @@ export default defineComponent({
 
     const randomizeParameters = () => {
       if (parameterInterface) {
-        parameterInterface.randomize(0.01); // 20% variance
+        parameterInterface.randomize(0.5); // 20% variance
         updateParametersFromInterface();
       }
     };

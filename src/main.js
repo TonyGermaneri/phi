@@ -95,16 +95,22 @@ let frameCounter = 0;
 
 // Process parameter data
 for (let lineIndex = 0; lineIndex < parameterLines.length; ++lineIndex) {
-  if (parameterLines[lineIndex].length > 16) {
-    blurIterations.push(parseInt(parameterLines[lineIndex][16]));
-  }
+  // Only process lines with enough parameters (at least 25 for the parameters + 1 for the name)
   if (parameterLines[lineIndex].length >= 25) {
     parameterSets.push(new Float32Array(parameterLines[lineIndex].slice(0, 26)));
-  }
 
-  let presetName = parameterLines[lineIndex][26] + "";
-  presetName = presetName.replace(/\s|\//g, "");
-  presetNames.push(presetName);
+    // Add blur iteration for this valid parameter set
+    if (parameterLines[lineIndex].length > 16) {
+      blurIterations.push(parseInt(parameterLines[lineIndex][16]));
+    } else {
+      blurIterations.push(0); // Default blur iterations if not available
+    }
+
+    // Only add preset name if we successfully added a parameter set
+    let presetName = parameterLines[lineIndex][26] + "";
+    presetName = presetName.replace(/\s|\//g, "");
+    presetNames.push(presetName);
+  }
 }
 // Mobile device adjustments for better performance
 const isMobileDevice = ["iPad", "iPhone", "iPod"].includes(navigator.platform) ||
@@ -211,7 +217,7 @@ function createParameterProxy() {
 
     // Apply parameter changes with optional smooth transition
     applyChanges(newParams, smooth = true) {
-      if (Array.isArray(newParams) && newParams.length === 26) {
+      if ((Array.isArray(newParams) || newParams instanceof Float32Array) && newParams.length === 26) {
         const targetParams = new Float32Array(newParams);
 
         // Always update the parameter set immediately
@@ -244,8 +250,8 @@ function createParameterProxy() {
       const originalIndex = currentPresetIndex;
       // Force reload from original data
       const originalLine = parameterLines[originalIndex];
-      if (originalLine && originalLine.length >= 20) {
-        const originalParams = new Float32Array(originalLine.slice(0, 20));
+      if (originalLine && originalLine.length >= 26) {
+        const originalParams = new Float32Array(originalLine.slice(0, 26));
         this.applyChanges(originalParams, false);
       }
     },
@@ -297,11 +303,29 @@ function createParameterProxy() {
     },
 
     // Create a random variation of current parameters
-    randomize(variance = 0.1) {
-      const newParams = this.currentParams.map(param => {
+    randomize(variance = 0.5) {
+      const currentParams = this.currentParams;
+
+      if (!currentParams) {
+        console.error('currentParams is null/undefined');
+        return;
+      }
+
+      if (!Array.isArray(currentParams) && !(currentParams instanceof Float32Array)) {
+        console.error('currentParams is not an array:', currentParams);
+        return;
+      }
+
+      if (currentParams.length !== 26) {
+        console.error(`currentParams has wrong length: ${currentParams.length}, expected 26`);
+        return;
+      }
+
+      const newParams = currentParams.map(param => {
         const variation = (Math.random() - 0.5) * 2 * variance;
         return Math.max(0, param + param * variation);
       });
+
       this.applyChanges(newParams, true);
     },
 
