@@ -33,6 +33,7 @@
         style="max-width: 300px"
         hide-details
         @update:model-value="switchPreset"
+        @update:menu="selectMenuOpen = $event"
       >
         <template v-slot:selection="{ item }">
           <span class="text-white" style="white-space: nowrap;">{{ item.title }}</span>
@@ -737,6 +738,7 @@ export default defineComponent({
     const activeTab = ref('presets');
     const hideTimer = ref(null);
     const currentPresetIndex = ref(7); // Default point index
+    const selectMenuOpen = ref(false);
 
     // User preset management
     const userPresets = ref([]);
@@ -808,7 +810,7 @@ export default defineComponent({
     };
 
     const startHideTimer = () => {
-      if (!controlPanelOpen.value) {
+      if (!controlPanelOpen.value && !selectMenuOpen.value) {
         hideTimer.value = setTimeout(() => {
           headerVisible.value = false;
         }, 2000);
@@ -1152,6 +1154,7 @@ export default defineComponent({
       controlPanelOpen,
       activeTab,
       currentPresetIndex,
+      selectMenuOpen,
       parameters,
 
       // User preset management
