@@ -430,13 +430,33 @@
                 @update:model-value="updateParameter(23, $event)"
               />
 
+              <parameter-control
+                v-model="parameters.lightnessBase"
+                title="Lightness Base"
+                description="Base lightness value for color generation (0-1, 0=black, 1=white)"
+                :min="0"
+                :max="1"
+                :step="0.01"
+                @update:model-value="updateParameter(24, $event)"
+              />
+
+              <parameter-control
+                v-model="parameters.lightnessMultiplier"
+                title="Lightness Multiplier"
+                description="How much trail intensity affects lightness. Higher values create brighter colors in active areas"
+                :min="0"
+                :max="2"
+                :step="0.01"
+                @update:model-value="updateParameter(25, $event)"
+              />
+
               <v-card variant="tonal" class="mt-4">
                 <v-card-text>
                   <p class="text-body-2">
                     <strong>Color Evolution:</strong> Colors evolve organically based on trail intensity.
                   </p>
                   <p class="text-caption mt-2">
-                    The color system uses HSL (Hue, Saturation, Lightness) with dynamic hue and saturation
+                    The color system uses HSL (Hue, Saturation, Lightness) with dynamic hue, saturation, and lightness
                     that respond to the same trail intensities that drive particle behavior, creating
                     colors that naturally follow the organic patterns of the simulation.
                   </p>
@@ -580,11 +600,15 @@ export default defineComponent({
       hueBase: 0,
       hueMultiplier: 0,
       saturationBase: 0,
-      saturationMultiplier: 0
+      saturationMultiplier: 0,
+      lightnessBase: 0,
+      lightnessMultiplier: 0
     });
 
     // Access to global parameter interface
     let parameterInterface = null;
+    let updateTimer = null;
+    let suppressUpdates = false;
 
     const currentPresetName = computed(() => {
       if (!parameterInterface) return '';
@@ -616,7 +640,8 @@ export default defineComponent({
     };
 
     const updateParametersFromInterface = () => {
-      if (!parameterInterface) return;
+      // Don't update if user is actively editing parameters
+      if (!parameterInterface || suppressUpdates) return;
 
       const currentParams = parameterInterface.currentParams;
       parameters.value.sensorDistanceBase = currentParams[0];
@@ -643,11 +668,25 @@ export default defineComponent({
       parameters.value.hueMultiplier = currentParams[21];
       parameters.value.saturationBase = currentParams[22];
       parameters.value.saturationMultiplier = currentParams[23];
+      parameters.value.lightnessBase = currentParams[24];
+      parameters.value.lightnessMultiplier = currentParams[25];
     };
 
     const updateParameter = (index, value) => {
       if (parameterInterface) {
+        // Temporarily suppress automatic updates to prevent flapping
+        suppressUpdates = true;
         parameterInterface.setParam(index, value, true);
+
+        // Clear any existing timer
+        if (updateTimer) {
+          clearTimeout(updateTimer);
+        }
+
+        // Re-enable updates after a short delay
+        updateTimer = setTimeout(() => {
+          suppressUpdates = false;
+        }, 200);
       }
     };
 
@@ -727,7 +766,7 @@ export default defineComponent({
 
           // Set up periodic sync to keep control panel updated
           setInterval(() => {
-            if (parameterInterface) {
+            if (parameterInterface && !suppressUpdates) {
               // Check if preset changed
               if (currentPresetIndex.value !== parameterInterface.presetIndex) {
                 currentPresetIndex.value = parameterInterface.presetIndex;
@@ -751,6 +790,9 @@ export default defineComponent({
 
     onUnmounted(() => {
       clearTimeout(hideTimer.value);
+      if (updateTimer) {
+        clearTimeout(updateTimer);
+      }
     });
 
     return {
