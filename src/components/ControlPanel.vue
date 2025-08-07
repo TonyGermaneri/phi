@@ -674,19 +674,7 @@ export default defineComponent({
 
     const updateParameter = (index, value) => {
       if (parameterInterface) {
-        // Temporarily suppress automatic updates to prevent flapping
-        suppressUpdates = true;
         parameterInterface.setParam(index, value, true);
-
-        // Clear any existing timer
-        if (updateTimer) {
-          clearTimeout(updateTimer);
-        }
-
-        // Re-enable updates after a short delay
-        updateTimer = setTimeout(() => {
-          suppressUpdates = false;
-        }, 200);
       }
     };
 

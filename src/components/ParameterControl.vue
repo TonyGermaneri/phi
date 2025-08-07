@@ -1,4 +1,5 @@
 <template>
+  <hr class="mt-2" color="#333"/>
   <v-slider
     :model-value="modelValue"
     :min="min"
@@ -7,22 +8,20 @@
     thumb-label
     :label="title"
     :hint="description"
+    persistent-hint
+    class="pl-4 mt-2 d-inline-block w-66 ma-0"
     @update:model-value="$emit('update:modelValue', $event)"
-  >
-    <template v-slot:append>
-      <v-text-field
-        :model-value="modelValue"
-        :min="min"
-        :max="max"
-        :step="step"
-        type="number"
-        variant="outlined"
-        density="compact"
-        hide-details
-        @update:model-value="$emit('update:modelValue', parseFloat($event) || 0)"
-      ></v-text-field>
-    </template>
-  </v-slider>
+  ></v-slider>
+  <v-text-field
+    :model-value="modelValue"
+    :min="min"
+    :max="max"
+    :step="step"
+    density="compact"
+    hide-details
+    class="d-inline-block w-33 mx-0 pl-2"
+    @update:model-value="$emit('update:modelValue', parseFloat($event) || 0)"
+  ></v-text-field>
 </template>
 
 <script>
