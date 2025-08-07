@@ -648,6 +648,60 @@ phi.explore = {
   }
 };
 
+// Add preset management utilities
+phi.presets = {
+  // Reset all default presets to their original values
+  async resetDefaults() {
+    try {
+      // Import preset database (if using module system, this would be handled differently)
+      if (window.presetDatabase) {
+        const resetCount = await window.presetDatabase.resetDefaultPresets();
+        const updatedDefaults = await window.presetDatabase.getCurrentDefaultPresets();
+
+        // Update the main parameter sets with reset values
+        for (let i = 0; i < Math.min(updatedDefaults.length, parameterSets.length); i++) {
+          parameterSets[i] = new Float32Array(updatedDefaults[i]);
+        }
+
+        // If currently on a default preset, refresh it
+        if (currentPresetIndex >= 0 && currentPresetIndex < parameterSets.length) {
+          phi.switchPreset(currentPresetIndex);
+        }
+
+        console.log(`Reset ${resetCount} default presets to original values`);
+        return { success: true, count: resetCount };
+      } else {
+        console.warn('Preset database not available');
+        return { success: false, error: 'Preset database not available' };
+      }
+    } catch (error) {
+      console.error('Failed to reset default presets:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Initialize preset database with current defaults
+  async initializeDatabase() {
+    try {
+      if (window.presetDatabase) {
+        await window.presetDatabase.saveDefaultPresets(
+          parameterSets.map(params => [...params]), // Convert to regular arrays
+          phi.presetNames,
+          parameterLines // Pass original parameter lines for reset functionality
+        );
+        console.log('Preset database initialized with default presets');
+        return { success: true };
+      } else {
+        console.warn('Preset database not available');
+        return { success: false, error: 'Preset database not available' };
+      }
+    } catch (error) {
+      console.error('Failed to initialize preset database:', error);
+      return { success: false, error: error.message };
+    }
+  }
+};
+
 console.log('🎨 Particle parameter interface initialized!');
 console.log('📚 Based on Sage Jenson\'s "36 Points" physarum simulation algorithm and Jeff Jones Characteristics of pattern formation and evolution in approximations of physarum transport networks.');
 console.log('');
@@ -687,6 +741,10 @@ console.log('  phi.explore.findSimilar(0, 0.5)        // Find presets with simil
 console.log('  phi.explore.parameterStats(0)          // Get statistics for param 0');
 console.log('  phi.explore.findExtremes(0)            // Find min/max values for param 0');
 console.log('');
+console.log('Preset management:');
+console.log('  phi.presets.resetDefaults()            // Reset all default presets to original values');
+console.log('  phi.presets.initializeDatabase()       // Initialize preset database');
+console.log('');
 console.log('🧬 Physarum simulation parameters:');
 console.log('  Sensing: sensorDistanceBase/Multiplier/Exponent, sensorAngleBase/Multiplier/Exponent');
 console.log('  Movement: rotationAngleBase/Multiplier/Exponent, moveDistanceBase/Multiplier/Exponent');
@@ -695,6 +753,13 @@ console.log('  Trail: trailSenseScale, decayFactor, blurIterations');
 console.log('  Visual: drawOpacity, fillOpacity, depositAmount');
 console.log('');
 console.log('💡 Try: phi.sensorDistanceBase = 15; phi.animate.oscillate(0, 5, 25) for live exploration!');
+console.log('');
+console.log('🎛️  UI Features:');
+console.log('  • Use the gear icon (⚙️) in the top-left to access the Control Panel');
+console.log('  • Save custom presets with titles and descriptions');
+console.log('  • Export presets as .json files or import by drag & drop');
+console.log('  • Reset default presets to original values');
+console.log('  • Real-time parameter manipulation with sliders');
 
 // Vertex shader source code (used for rendering)
 const VERTEX_SHADER_SOURCE = `#version 300 es
@@ -1877,7 +1942,7 @@ function handleKeyPress(keyCode) {
 // Event listeners
 window.addEventListener("resize", resizeCanvas);
 
-document.onkeypress = function (event) {
+document.body.onkeypress = function (event) {
   inactivityCounter = 0;
   handleKeyPress((event || window.event).keyCode || event.which);
 };

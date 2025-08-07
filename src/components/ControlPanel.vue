@@ -49,7 +49,7 @@
       location="right"
       style="z-index: 2001"
     >
-      <v-card flat height="100%">
+      <v-card flat height="100%" @keydown.stop @keyup.stop @keypress.stop>
         <v-card-title class="d-flex align-center justify-space-between">
           <span>Physarum Control Panel</span>
           <v-btn icon variant="text" @click="controlPanelOpen = false">
@@ -72,10 +72,11 @@
 
             <!-- Presets Tab -->
             <v-tabs-window-item value="presets">
+              <!-- Built-in Presets -->
               <v-row>
                 <v-col cols="12">
                   <v-card variant="outlined">
-                    <v-card-title>Pattern Presets</v-card-title>
+                    <v-card-title>Built-in Presets</v-card-title>
                     <v-card-text>
                       <v-select
                         v-model="currentPresetIndex"
@@ -85,17 +86,27 @@
                       ></v-select>
 
                       <v-row class="mt-4">
-                        <v-col cols="6">
+                        <v-col cols="4">
                           <v-btn
                             color="primary"
                             variant="outlined"
                             block
                             @click="resetCurrentPreset"
                           >
-                            Reset to Original
+                            Reset Current
                           </v-btn>
                         </v-col>
-                        <v-col cols="6">
+                        <v-col cols="4">
+                          <v-btn
+                            color="warning"
+                            variant="outlined"
+                            block
+                            @click="resetAllDefaults"
+                          >
+                            Reset All Defaults
+                          </v-btn>
+                        </v-col>
+                        <v-col cols="4">
                           <v-btn
                             color="secondary"
                             variant="outlined"
@@ -106,6 +117,116 @@
                           </v-btn>
                         </v-col>
                       </v-row>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+
+              <!-- User Presets -->
+              <v-row class="mt-4">
+                <v-col cols="12">
+                  <v-card variant="outlined">
+                    <v-card-title class="d-flex justify-space-between align-center">
+                      <span>User Presets</span>
+                      <v-btn
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                        @click="showSaveDialog = true"
+                      >
+                        <v-icon left>mdi-plus</v-icon>
+                        Save Current
+                      </v-btn>
+                    </v-card-title>
+                    <v-card-text>
+                      <div v-if="userPresets.length === 0" class="text-center text-grey">
+                        No user presets saved yet
+                      </div>
+                      <v-list v-else>
+                        <v-list-item
+                          v-for="preset in userPresets"
+                          :key="preset.id"
+                          class="px-0"
+                        >
+                          <template v-slot:prepend>
+                            <v-btn
+                              icon
+                              variant="text"
+                              size="small"
+                              @click="loadUserPreset(preset)"
+                            >
+                              <v-icon>mdi-play</v-icon>
+                            </v-btn>
+                          </template>
+
+                          <v-list-item-title>{{ preset.title }}</v-list-item-title>
+                          <v-list-item-subtitle>{{ preset.description }}</v-list-item-subtitle>
+
+                          <template v-slot:append>
+                            <v-btn
+                              icon
+                              variant="text"
+                              size="small"
+                              @click="exportUserPreset(preset)"
+                            >
+                              <v-icon>mdi-download</v-icon>
+                            </v-btn>
+                            <v-btn
+                              icon
+                              variant="text"
+                              size="small"
+                              @click="editUserPreset(preset)"
+                            >
+                              <v-icon>mdi-pencil</v-icon>
+                            </v-btn>
+                            <v-btn
+                              icon
+                              variant="text"
+                              size="small"
+                              color="error"
+                              @click="deleteUserPreset(preset)"
+                            >
+                              <v-icon>mdi-delete</v-icon>
+                            </v-btn>
+                          </template>
+                        </v-list-item>
+                      </v-list>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+
+              <!-- Import Section -->
+              <v-row class="mt-4">
+                <v-col cols="12">
+                  <v-card
+                    variant="outlined"
+                    class="drop-zone"
+                    :class="{ 'drop-zone-active': dragOver }"
+                    @dragover.prevent="dragOver = true"
+                    @dragleave.prevent="dragOver = false"
+                    @drop.prevent="handleFileDrop"
+                  >
+                    <v-card-title>Import Presets</v-card-title>
+                    <v-card-text class="text-center">
+                      <v-icon size="48" class="mb-2">mdi-upload</v-icon>
+                      <p>Drag and drop .json preset files here</p>
+                      <p class="text-body-2 text-grey">or</p>
+                      <v-btn
+                        color="primary"
+                        variant="outlined"
+                        @click="$refs.fileInput.click()"
+                      >
+                        Choose Files
+                      </v-btn>
+                      <input
+                        ref="fileInput"
+                        type="file"
+                        accept=".json"
+                        multiple
+                        style="display: none"
+                        @change="handleFileSelect"
+                      />
                     </v-card-text>
                   </v-card>
                 </v-col>
@@ -530,32 +651,79 @@
       </v-card>
     </v-navigation-drawer>
 
-    <!-- Import Dialog -->
-    <v-dialog v-model="showImportDialog" max-width="500">
-      <v-card>
-        <v-card-title>Import Parameters</v-card-title>
+    <!-- Save Preset Dialog -->
+    <v-dialog v-model="showSaveDialog" max-width="500">
+      <v-card @keydown.stop @keyup.stop @keypress.stop>
+        <v-card-title>{{ editingPreset ? 'Edit Preset' : 'Save Current Parameters as Preset' }}</v-card-title>
         <v-card-text>
-          <v-textarea
-            v-model="importText"
-            label="Paste parameter array here"
+          <v-text-field
+            v-model="presetForm.title"
+            label="Preset Title"
             variant="outlined"
-            rows="6"
-            placeholder='[0.000, 4.000, 0.300, ...]'
+            :rules="[v => !!v || 'Title is required']"
+            class="mb-3"
+            @keydown.stop
+            @keyup.stop
+            @keypress.stop
+            @keydown.enter="presetForm.title.trim() ? savePreset() : null"
+          ></v-text-field>
+
+          <v-textarea
+            v-model="presetForm.description"
+            label="Description (optional)"
+            variant="outlined"
+            rows="3"
+            placeholder="Describe what makes this preset unique..."
+            @keydown.stop
+            @keyup.stop
+            @keypress.stop
           ></v-textarea>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn @click="showImportDialog = false">Cancel</v-btn>
-          <v-btn color="primary" @click="importParameters">Import</v-btn>
+          <v-btn @click="cancelPresetEdit">Cancel</v-btn>
+          <v-btn
+            color="primary"
+            @click="savePreset"
+            :disabled="!presetForm.title.trim()"
+          >
+            {{ editingPreset ? 'Update' : 'Save' }}
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Delete Confirmation Dialog -->
+    <v-dialog v-model="showDeleteDialog" max-width="400">
+      <v-card @keydown.stop @keyup.stop @keypress.stop>
+        <v-card-title>Delete Preset</v-card-title>
+        <v-card-text>
+          Are you sure you want to delete "{{ presetToDelete?.title }}"?
+          This action cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn @click="showDeleteDialog = false">Cancel</v-btn>
+          <v-btn color="error" @click="confirmDeletePreset">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Import Status Snackbar -->
+    <v-snackbar
+      v-model="showImportStatus"
+      :color="importStatus.success ? 'success' : 'error'"
+      timeout="3000"
+    >
+      {{ importStatus.message }}
+    </v-snackbar>
   </div>
 </template>
 
 <script>
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue';
 import ParameterControl from './ParameterControl.vue';
+import presetDatabase from '../services/presetDatabase.js';
 
 export default defineComponent({
   name: 'ControlPanel',
@@ -569,8 +737,26 @@ export default defineComponent({
     const activeTab = ref('presets');
     const hideTimer = ref(null);
     const currentPresetIndex = ref(7); // Default point index
-    const showImportDialog = ref(false);
-    const importText = ref('');
+
+    // User preset management
+    const userPresets = ref([]);
+    const showSaveDialog = ref(false);
+    const showDeleteDialog = ref(false);
+    const editingPreset = ref(null);
+    const presetToDelete = ref(null);
+    const presetForm = ref({
+      title: '',
+      description: ''
+    });
+
+    // Import/export state
+    const dragOver = ref(false);
+    const showImportStatus = ref(false);
+    const importStatus = ref({
+      success: false,
+      message: ''
+    });
+
     const interpolationTarget = ref(0);
     const interpolationAmount = ref(0);
     const presetItems = ref([]);
@@ -695,7 +881,7 @@ export default defineComponent({
 
     const randomizeParameters = () => {
       if (parameterInterface) {
-        parameterInterface.randomize(0.5); // 20% variance
+        parameterInterface.randomize(0.5); // 50% variance
         updateParametersFromInterface();
       }
     };
@@ -707,40 +893,204 @@ export default defineComponent({
       }
     };
 
-    const exportParameters = () => {
-      if (parameterInterface) {
-        const params = Array.from(parameterInterface.currentParams);
-        const exportString = JSON.stringify(params, null, 2);
-
-        // Copy to clipboard
-        navigator.clipboard.writeText(exportString).then(() => {
-          console.log('Parameters exported to clipboard');
-        }).catch(err => {
-          console.error('Failed to copy parameters: ', err);
-        });
+    // User preset management functions
+    const loadUserPresets = async () => {
+      try {
+        const presets = await presetDatabase.getUserPresets();
+        userPresets.value = presets.sort((a, b) => new Date(b.created) - new Date(a.created));
+      } catch (error) {
+        console.error('Failed to load user presets:', error);
       }
     };
 
-    const importParameters = () => {
+    const resetAllDefaults = async () => {
       try {
-        const params = JSON.parse(importText.value);
-        if (Array.isArray(params) && params.length === 24) {
-          if (parameterInterface) {
-            parameterInterface.applyChanges(params, true);
-            updateParametersFromInterface();
-            showImportDialog.value = false;
-            importText.value = '';
+        if (window.phi && window.phi.presets) {
+          const result = await window.phi.presets.resetDefaults();
+          if (result.success) {
+            // Update the current preset display
+            if (parameterInterface) {
+              updateParametersFromInterface();
+            }
+            showImportStatus.value = true;
+            importStatus.value = {
+              success: true,
+              message: `Reset ${result.count} default presets successfully`
+            };
+          } else {
+            throw new Error(result.error || 'Failed to reset defaults');
           }
         } else {
-          console.error('Invalid parameter format. Must be array of 24 numbers.');
+          throw new Error('Preset management not available');
         }
       } catch (error) {
-        console.error('Failed to parse parameters:', error);
+        console.error('Failed to reset defaults:', error);
+        showImportStatus.value = true;
+        importStatus.value = {
+          success: false,
+          message: 'Failed to reset default presets'
+        };
       }
+    };
+
+    const savePreset = async () => {
+      if (!presetForm.value.title.trim()) return;
+
+      try {
+        const currentParams = Array.from(parameterInterface.currentParams);
+
+        if (editingPreset.value) {
+          // Update existing preset
+          await presetDatabase.updatePreset(
+            editingPreset.value.id,
+            presetForm.value.title,
+            presetForm.value.description,
+            currentParams
+          );
+        } else {
+          // Save new preset
+          await presetDatabase.saveUserPreset(
+            presetForm.value.title,
+            presetForm.value.description,
+            currentParams
+          );
+        }
+
+        await loadUserPresets();
+        cancelPresetEdit();
+
+        showImportStatus.value = true;
+        importStatus.value = {
+          success: true,
+          message: editingPreset.value ? 'Preset updated successfully' : 'Preset saved successfully'
+        };
+      } catch (error) {
+        console.error('Failed to save preset:', error);
+        showImportStatus.value = true;
+        importStatus.value = {
+          success: false,
+          message: 'Failed to save preset'
+        };
+      }
+    };
+
+    const loadUserPreset = (preset) => {
+      if (parameterInterface) {
+        parameterInterface.applyChanges(preset.parameters, true);
+        updateParametersFromInterface();
+      }
+    };
+
+    const editUserPreset = (preset) => {
+      editingPreset.value = preset;
+      presetForm.value.title = preset.title;
+      presetForm.value.description = preset.description;
+      showSaveDialog.value = true;
+    };
+
+    const exportUserPreset = (preset) => {
+      presetDatabase.exportPresetAsFile(preset);
+    };
+
+    const deleteUserPreset = (preset) => {
+      presetToDelete.value = preset;
+      showDeleteDialog.value = true;
+    };
+
+    const confirmDeletePreset = async () => {
+      if (!presetToDelete.value) return;
+
+      try {
+        await presetDatabase.deletePreset(presetToDelete.value.id);
+        await loadUserPresets();
+        showDeleteDialog.value = false;
+        presetToDelete.value = null;
+
+        showImportStatus.value = true;
+        importStatus.value = {
+          success: true,
+          message: 'Preset deleted successfully'
+        };
+      } catch (error) {
+        console.error('Failed to delete preset:', error);
+        showImportStatus.value = true;
+        importStatus.value = {
+          success: false,
+          message: 'Failed to delete preset'
+        };
+      }
+    };
+
+    const cancelPresetEdit = () => {
+      showSaveDialog.value = false;
+      editingPreset.value = null;
+      presetForm.value = {
+        title: '',
+        description: ''
+      };
+    };
+
+    // File import handling
+    const handleFileDrop = async (event) => {
+      dragOver.value = false;
+      const files = Array.from(event.dataTransfer.files);
+      await processImportFiles(files);
+    };
+
+    const handleFileSelect = async (event) => {
+      const files = Array.from(event.target.files);
+      await processImportFiles(files);
+      event.target.value = ''; // Reset file input
+    };
+
+    const processImportFiles = async (files) => {
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const file of files) {
+        if (file.type === 'application/json' || file.name.endsWith('.json')) {
+          try {
+            await presetDatabase.handleFileDrop(file);
+            successCount++;
+          } catch (error) {
+            console.error(`Failed to import ${file.name}:`, error);
+            errorCount++;
+          }
+        } else {
+          errorCount++;
+        }
+      }
+
+      await loadUserPresets();
+
+      let message = '';
+      if (successCount > 0) {
+        message += `${successCount} preset${successCount > 1 ? 's' : ''} imported successfully`;
+      }
+      if (errorCount > 0) {
+        if (message) message += ', ';
+        message += `${errorCount} file${errorCount > 1 ? 's' : ''} failed to import`;
+      }
+
+      showImportStatus.value = true;
+      importStatus.value = {
+        success: successCount > 0,
+        message: message || 'No valid preset files found'
+      };
     };
 
     // Initialize parameter interface when component mounts
-    onMounted(() => {
+    onMounted(async () => {
+      // Initialize preset database
+      try {
+        await presetDatabase.init();
+        window.presetDatabase = presetDatabase; // Make available globally
+        await loadUserPresets();
+        console.log('Preset database initialized');
+      } catch (error) {
+        console.error('Failed to initialize preset database:', error);
+      }
+
       // Wait for global parameter interface to be available
       const checkInterface = () => {
         if (window.createParameterProxy) {
@@ -751,6 +1101,14 @@ export default defineComponent({
           }))
           currentPresetIndex.value = parameterInterface.presetIndex;
           updateParametersFromInterface();
+
+          // Initialize database with default presets if needed
+          presetDatabase.saveDefaultPresets(
+            parameterInterface.allParams,
+            parameterInterface.presetNames
+          ).catch(error => {
+            console.error('Failed to save default presets:', error);
+          });
 
           // Set up periodic sync to keep control panel updated
           setInterval(() => {
@@ -790,8 +1148,20 @@ export default defineComponent({
       activeTab,
       currentPresetIndex,
       parameters,
-      showImportDialog,
-      importText,
+
+      // User preset management
+      userPresets,
+      showSaveDialog,
+      showDeleteDialog,
+      editingPreset,
+      presetToDelete,
+      presetForm,
+
+      // Import/export state
+      dragOver,
+      showImportStatus,
+      importStatus,
+
       interpolationTarget,
       interpolationAmount,
       presetItems,
@@ -806,10 +1176,22 @@ export default defineComponent({
       updateParameter,
       switchPreset,
       resetCurrentPreset,
+      resetAllDefaults,
       randomizeParameters,
       interpolatePresets,
-      exportParameters,
-      importParameters,
+
+      // User preset methods
+      savePreset,
+      loadUserPreset,
+      editUserPreset,
+      exportUserPreset,
+      deleteUserPreset,
+      confirmDeletePreset,
+      cancelPresetEdit,
+
+      // File handling
+      handleFileDrop,
+      handleFileSelect,
 
       // Math for template
       Math
@@ -863,16 +1245,28 @@ export default defineComponent({
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Drag and drop styles */
+.drop-zone {
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.drop-zone-active {
+  border-color: #2196F3;
+  background-color: rgba(33, 150, 243, 0.1);
+  transform: scale(1.02);
 }
 </style>
