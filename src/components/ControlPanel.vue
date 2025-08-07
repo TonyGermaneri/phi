@@ -25,9 +25,10 @@
       <v-spacer></v-spacer>
 
       <!-- Quick preset selector -->
+            <!-- Quick preset selector -->
       <v-select
-        v-model="currentPresetIndex"
-        :items="presetItems"
+        v-model="currentPresetValue"
+        :items="allPresetItems"
         variant="outlined"
         density="compact"
         style="max-width: 300px"
@@ -37,6 +38,29 @@
       >
         <template v-slot:selection="{ item }">
           <span class="text-white" style="white-space: nowrap;">{{ item.title }}</span>
+        </template>
+        <template v-slot:item="{ props, item }">
+          <v-list-item v-bind="props">
+            <template v-slot:append v-if="item.raw.type === 'user'">
+              <v-btn
+                icon
+                size="small"
+                variant="text"
+                @click.stop="exportUserPreset(item.raw.preset)"
+              >
+                <v-icon size="16">mdi-download</v-icon>
+              </v-btn>
+              <v-btn
+                icon
+                size="small"
+                variant="text"
+                color="error"
+                @click.stop="deleteUserPreset(item.raw.preset)"
+              >
+                <v-icon size="16">mdi-delete</v-icon>
+              </v-btn>
+            </template>
+          </v-list-item>
         </template>
       </v-select>
     </v-app-bar>
@@ -87,7 +111,7 @@
                       ></v-select>
 
                       <v-row class="mt-4">
-                        <v-col cols="4">
+                        <v-col cols="6">
                           <v-btn
                             color="primary"
                             variant="outlined"
@@ -97,17 +121,7 @@
                             Reset Current
                           </v-btn>
                         </v-col>
-                        <v-col cols="4">
-                          <v-btn
-                            color="warning"
-                            variant="outlined"
-                            block
-                            @click="resetAllDefaults"
-                          >
-                            Reset All Defaults
-                          </v-btn>
-                        </v-col>
-                        <v-col cols="4">
+                        <v-col cols="6">
                           <v-btn
                             color="secondary"
                             variant="outlined"
@@ -118,80 +132,21 @@
                           </v-btn>
                         </v-col>
                       </v-row>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-              </v-row>
 
-              <!-- User Presets -->
-              <v-row class="mt-4">
-                <v-col cols="12">
-                  <v-card variant="outlined">
-                    <v-card-title class="d-flex justify-space-between align-center">
-                      <span>User Presets</span>
-                      <v-btn
-                        color="primary"
-                        variant="outlined"
-                        size="small"
-                        @click="showSaveDialog = true"
-                      >
-                        <v-icon left>mdi-plus</v-icon>
-                        Save Current
-                      </v-btn>
-                    </v-card-title>
-                    <v-card-text>
-                      <div v-if="userPresets.length === 0" class="text-center text-grey">
-                        No user presets saved yet
-                      </div>
-                      <v-list v-else>
-                        <v-list-item
-                          v-for="preset in userPresets"
-                          :key="preset.id"
-                          class="px-0"
-                        >
-                          <template v-slot:prepend>
-                            <v-btn
-                              icon
-                              variant="text"
-                              size="small"
-                              @click="loadUserPreset(preset)"
-                            >
-                              <v-icon>mdi-play</v-icon>
-                            </v-btn>
-                          </template>
-
-                          <v-list-item-title>{{ preset.title }}</v-list-item-title>
-                          <v-list-item-subtitle>{{ preset.description }}</v-list-item-subtitle>
-
-                          <template v-slot:append>
-                            <v-btn
-                              icon
-                              variant="text"
-                              size="small"
-                              @click="exportUserPreset(preset)"
-                            >
-                              <v-icon>mdi-download</v-icon>
-                            </v-btn>
-                            <v-btn
-                              icon
-                              variant="text"
-                              size="small"
-                              @click="editUserPreset(preset)"
-                            >
-                              <v-icon>mdi-pencil</v-icon>
-                            </v-btn>
-                            <v-btn
-                              icon
-                              variant="text"
-                              size="small"
-                              color="error"
-                              @click="deleteUserPreset(preset)"
-                            >
-                              <v-icon>mdi-delete</v-icon>
-                            </v-btn>
-                          </template>
-                        </v-list-item>
-                      </v-list>
+                      <!-- Save Current Preset Button -->
+                      <v-row class="mt-4">
+                        <v-col cols="12">
+                          <v-btn
+                            color="primary"
+                            variant="outlined"
+                            block
+                            @click="showSaveDialog = true"
+                          >
+                            <v-icon left>mdi-plus</v-icon>
+                            Save Current Parameters as Preset
+                          </v-btn>
+                        </v-col>
+                      </v-row>
                     </v-card-text>
                   </v-card>
                 </v-col>
@@ -626,10 +581,34 @@
                     <v-col cols="12">
                       <v-select
                         v-model="interpolationTarget"
-                        :items="presetItems"
+                        :items="allPresetItems"
                         label="Interpolate with preset"
                         variant="outlined"
-                      ></v-select>
+                      >
+                        <template v-slot:item="{ props, item }">
+                          <v-list-item v-bind="props">
+                            <template v-slot:append v-if="item.raw.type === 'user'">
+                              <v-btn
+                                icon
+                                size="small"
+                                variant="text"
+                                @click.stop="exportUserPreset(item.raw.preset)"
+                              >
+                                <v-icon size="16">mdi-download</v-icon>
+                              </v-btn>
+                              <v-btn
+                                icon
+                                size="small"
+                                variant="text"
+                                color="error"
+                                @click.stop="deleteUserPreset(item.raw.preset)"
+                              >
+                                <v-icon size="16">mdi-delete</v-icon>
+                              </v-btn>
+                            </template>
+                          </v-list-item>
+                        </template>
+                      </v-select>
                     </v-col>
                     <v-col cols="12">
                       <v-slider
@@ -762,6 +741,26 @@ export default defineComponent({
     const interpolationTarget = ref(0);
     const interpolationAmount = ref(0);
     const presetItems = ref([]);
+    const currentPresetValue = ref(0); // Track current selection (built-in or user preset)
+
+    // Computed property for combined preset list
+    const allPresetItems = computed(() => {
+      const builtInPresets = presetItems.value.map(preset => ({
+        ...preset,
+        type: 'builtin',
+        group: 'Built-in Presets'
+      }));
+
+      const userPresetItems = userPresets.value.map((preset, index) => ({
+        title: preset.title,
+        value: `user_${preset.id}`,
+        type: 'user',
+        preset: preset,
+        group: 'User Presets'
+      }));
+
+      return [...builtInPresets, ...userPresetItems];
+    });
 
     // Parameters object - reactive refs to actual parameter values
     const parameters = ref({
@@ -866,11 +865,26 @@ export default defineComponent({
       }
     };
 
-    const switchPreset = (index) => {
-      if (parameterInterface && typeof index === 'number') {
-        parameterInterface.switchPreset(index);
-        currentPresetIndex.value = index;
-        updateParametersFromInterface();
+    const switchPreset = (value) => {
+      if (!value) return;
+
+      if (typeof value === 'number') {
+        // Built-in preset
+        if (parameterInterface) {
+          parameterInterface.switchPreset(value);
+          currentPresetIndex.value = value;
+          currentPresetValue.value = value;
+          updateParametersFromInterface();
+        }
+      } else if (typeof value === 'string' && value.startsWith('user_')) {
+        // User preset
+        const presetId = value.replace('user_', '');
+        const preset = userPresets.value.find(p => p.id === presetId);
+        if (preset && parameterInterface) {
+          parameterInterface.applyChanges(preset.parameters, true);
+          currentPresetValue.value = value;
+          updateParametersFromInterface();
+        }
       }
     };
 
@@ -973,13 +987,6 @@ export default defineComponent({
           success: false,
           message: 'Failed to save preset'
         };
-      }
-    };
-
-    const loadUserPreset = (preset) => {
-      if (parameterInterface) {
-        parameterInterface.applyChanges(preset.parameters, true);
-        updateParametersFromInterface();
       }
     };
 
@@ -1173,6 +1180,8 @@ export default defineComponent({
       interpolationTarget,
       interpolationAmount,
       presetItems,
+      currentPresetValue,
+      allPresetItems,
 
       // Computed
       currentPresetName,
@@ -1190,7 +1199,6 @@ export default defineComponent({
 
       // User preset methods
       savePreset,
-      loadUserPreset,
       editUserPreset,
       exportUserPreset,
       deleteUserPreset,

@@ -311,8 +311,8 @@ class PresetDatabase {
       throw new Error('Invalid preset format: missing title or parameters');
     }
 
-    if (data.parameters.length !== 24) {
-      throw new Error('Invalid preset format: must have exactly 24 parameters');
+    if (data.parameters.length !== 26) {
+      throw new Error('Invalid preset format: must have exactly 26 parameters');
     }
 
     // Check if preset with same ID already exists
