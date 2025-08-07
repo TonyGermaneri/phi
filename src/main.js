@@ -1906,13 +1906,20 @@ function handleKeyPress(keyCode) {
       break;
     case "~":
       // Random interpolation
-      interpolateBetweenPresets(
-        Math.floor(Math.random() * keyCodeMapping.length),
-        Math.floor(Math.random() * keyCodeMapping.length),
-        parseFloat(Math.random().toFixed(3)),
-        true,
-        false
-      );
+      if (window.createParameterProxy) {
+        const paramInterface = window.createParameterProxy();
+        paramInterface.randomize(0.5);
+        console.log("Parameters randomized");
+      } else {
+        // Fallback to old method
+        interpolateBetweenPresets(
+          Math.floor(Math.random() * keyCodeMapping.length),
+          Math.floor(Math.random() * keyCodeMapping.length),
+          parseFloat(Math.random().toFixed(3)),
+          true,
+          false
+        );
+      }
       break;
     case "+":
       // Increase convergence rate
@@ -1942,10 +1949,10 @@ function handleKeyPress(keyCode) {
 // Event listeners
 window.addEventListener("resize", resizeCanvas);
 
-document.body.onkeypress = function (event) {
+document.body.addEventListener("keypress", (event) => {
   inactivityCounter = 0;
   handleKeyPress((event || window.event).keyCode || event.which);
-};
+});
 
 // Initialize particle system
 let particleSystem = new ParticleSystem(gl, systemParams);

@@ -20,7 +20,7 @@ class PresetDatabase {
       const request = indexedDB.open(this.dbName, this.version);
 
       request.onerror = () => reject(request.error);
-      
+
       request.onsuccess = () => {
         this.db = request.result;
         resolve();
@@ -28,7 +28,7 @@ class PresetDatabase {
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
-        
+
         // Create presets store if it doesn't exist
         if (!db.objectStoreNames.contains('presets')) {
           const presetStore = db.createObjectStore('presets', { keyPath: 'id' });
@@ -99,7 +99,7 @@ class PresetDatabase {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['presets'], 'readwrite');
       const store = transaction.objectStore('presets');
-      
+
       const request = store.put(preset);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -154,7 +154,7 @@ class PresetDatabase {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['presets'], 'readonly');
       const store = transaction.objectStore('presets');
-      
+
       const request = store.get(id);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -170,7 +170,7 @@ class PresetDatabase {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['presets'], 'readonly');
       const store = transaction.objectStore('presets');
-      
+
       const request = store.getAll();
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -186,7 +186,7 @@ class PresetDatabase {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['presets'], 'readonly');
       const store = transaction.objectStore('presets');
-      
+
       const request = store.getAll();
       request.onsuccess = () => {
         const results = request.result.filter(preset => preset.isDefault === true);
@@ -205,7 +205,7 @@ class PresetDatabase {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['presets'], 'readonly');
       const store = transaction.objectStore('presets');
-      
+
       const request = store.getAll();
       request.onsuccess = () => {
         const results = request.result.filter(preset => preset.isDefault === false);
@@ -223,7 +223,7 @@ class PresetDatabase {
     if (!preset) {
       throw new Error('Preset not found');
     }
-    
+
     if (preset.isDefault) {
       throw new Error('Cannot delete default presets');
     }
@@ -233,7 +233,7 @@ class PresetDatabase {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['presets'], 'readwrite');
       const store = transaction.objectStore('presets');
-      
+
       const request = store.delete(id);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
@@ -257,7 +257,7 @@ class PresetDatabase {
     if (!this.db) await this.init();
 
     const defaultPresets = await this.getDefaultPresets();
-    
+
     for (const preset of defaultPresets) {
       if (preset.originalParameters) {
         // Reset to original parameters
@@ -266,7 +266,7 @@ class PresetDatabase {
         await this.putPreset(preset);
       }
     }
-    
+
     return defaultPresets.length;
   }
 
@@ -285,7 +285,7 @@ class PresetDatabase {
 
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
+
     const link = document.createElement('a');
     link.href = URL.createObjectURL(dataBlob);
     link.download = `${preset.title.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
@@ -358,7 +358,7 @@ class PresetDatabase {
   async handleFileDrop(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = async (event) => {
         try {
           const preset = await this.importPresetFromData(event.target.result);
@@ -367,7 +367,7 @@ class PresetDatabase {
           reject(error);
         }
       };
-      
+
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsText(file);
     });

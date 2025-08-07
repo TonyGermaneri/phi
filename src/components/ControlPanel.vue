@@ -1126,6 +1126,11 @@ export default defineComponent({
         }
       };
       checkInterface();
+      document.body.addEventListener("keypress", (e) => {
+        setTimeout(() => {
+          updateParametersFromInterface();
+        }, 1);
+      });
       window.addEventListener("mousemove", () => {
         showHeader();
         startHideTimer();
