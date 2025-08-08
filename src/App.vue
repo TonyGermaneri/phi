@@ -1,16 +1,15 @@
 <template>
   <v-app>
-    <ShaderCanvas/>
+    <div class="shader-canvas-container">
+      <canvas id="canvas"></canvas>
+    </div>
     <ControlPanel/>
   </v-app>
 </template>
 
 <script setup>
-import ShaderCanvas from './components/ShaderCanvas.vue';
 import ControlPanel from './components/ControlPanel.vue';
-
 </script>
-
 <style scoped>
 .v-app {
   background: #000;
@@ -23,5 +22,18 @@ html, body {
 
 * {
     touch-action: none;
+}
+.shader-canvas-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
 }
 </style>
