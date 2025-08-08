@@ -547,6 +547,30 @@
                 @update:model-value="updateParameter(27, $event)"
               />
 
+              <v-divider class="my-4"></v-divider>
+
+              <h4 class="mb-3">Post-Processing Effects</h4>
+
+              <parameter-control
+                v-model="parameters.chromaticAberrationStrength"
+                title="Chromatic Aberration Strength"
+                description="Controls the intensity of the chromatic aberration effect. Higher values create more color separation"
+                :min="0"
+                :max="0.05"
+                :step="0.001"
+                @update:model-value="updateParameter(28, $event)"
+              />
+
+              <parameter-control
+                v-model="parameters.chromaticAberrationOffset"
+                title="Chromatic Aberration Offset"
+                description="Controls the offset distance for color channel separation. Higher values create wider color fringing"
+                :min="0"
+                :max="0.5"
+                :step="0.03"
+                @update:model-value="updateParameter(29, $event)"
+              />
+
               <v-card variant="tonal" class="mt-4">
                 <v-card-text>
                   <p class="text-body-2">
@@ -556,6 +580,14 @@
                     The color system uses HSL (Hue, Saturation, Lightness) with dynamic hue, saturation, lightness, and contrast
                     that respond to the same trail intensities that drive particle behavior, creating
                     colors that naturally follow the organic patterns of the simulation.
+                  </p>
+                  <p class="text-body-2 mt-3">
+                    <strong>Chromatic Aberration:</strong> Post-processing effect that separates color channels.
+                  </p>
+                  <p class="text-caption mt-2">
+                    Chromatic aberration simulates the optical distortion found in real lenses, where different
+                    wavelengths of light focus at slightly different distances. This creates a subtle color fringing
+                    effect that can enhance the organic, lens-like quality of the visualization.
                   </p>
                 </v-card-text>
               </v-card>
@@ -919,6 +951,8 @@ export default defineComponent({
       lightnessMultiplier: 0,
       contrastBase: 0,
       contrastMultiplier: 0,
+      chromaticAberrationStrength: 0,
+      chromaticAberrationOffset: 0,
       // System parameters
       renderSize: 1080,
       simSize: 512,
@@ -997,6 +1031,8 @@ export default defineComponent({
       parameters.value.lightnessMultiplier = currentParams[25];
       parameters.value.contrastBase = currentParams[26];
       parameters.value.contrastMultiplier = currentParams[27];
+      parameters.value.chromaticAberrationStrength = currentParams[28];
+      parameters.value.chromaticAberrationOffset = currentParams[29];
 
       // Update system parameters
       if (parameterInterface.systemParams) {

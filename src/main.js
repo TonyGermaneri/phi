@@ -27,53 +27,54 @@ app.mount('#app')
 const DEFAULT_POINT_INDEX = 6;
 // Particle system parameter definitions
 // Each line represents a different visual pattern/configuration
-// Format: [26 parameters per line] followed by // pattern_name
+// Format: [30 parameters per line] followed by // pattern_name
 // Parameters 0-19: Original physarum parameters
-// Parameters 20-25: Color parameters (hueBase, hueMultiplier, saturationBase, saturationMultiplier, lightnessBase, lightnessMultiplier)
+// Parameters 20-27: Color parameters (hueBase, hueMultiplier, saturationBase, saturationMultiplier, lightnessBase, lightnessMultiplier, contrastBase, contrastMultiplier)
+// Parameters 28-29: Chromatic aberration parameters (strength, offset)
 const PARTICLE_PARAMETERS = `
-0.000, 4.000, 0.300, 0.100, 51.32, 20.00, 0.410, 4.000, 0.000, 0.100, 6.000, 0.100, 0.000, 0.000, 0.400, 0.705, 1.000, 0.300, 0.250, 8.0, 0.200, 0.800, 0.700, 0.300, 0.600, 0.000, 1.000, 0.000,   // pure_multiscale
-0.000, 28.04, 14.53, 0.090, 1.000, 0.000, 0.010, 1.400, 1.120, 0.830, 0.000, 0.000, 0.570, 0.030, 0.070, 0.986, 1.000, 0.230, 0.166, 6.0, 0.500, 1.200, 0.800, 0.500, 0.600, 0.000, 1.000, 0.000,   // hex_hole_open
-17.92, 0.000, 0.000, 0.520, 0.000, 0.000, 0.180, 0.000, 0.000, 0.100, 6.050, 0.170, 0.000, 0.000, 0.040, 0.973, 1.000, 0.530, 0.455, 16., 0.000, 0.600, 0.900, 0.200, 0.600, 0.000, 1.000, 0.000,   // vertebrata
-3.000, 0.000, 0.000, 0.350, 0.000, 0.000, 0.000, 0.570, 2.000, 0.010, 4.000, 0.020, 0.300, 0.000, 0.110, 0.945, 1.000, 0.180, 0.248, 16., 0.100, 1.000, 0.600, 0.400, 0.600, 0.000, 1.000, 0.000,   // traffic_many_lanes
-13.95, 7.460, 0.110, 4.040, 5.000, 0.520, 0.490, 0.580, 0.180, 7.590, 3.040, 0.160, 4.760, 0.000, 0.610, 0.975, 1.000, 0.348, 0.172, 5.0, 0.800, 0.400, 0.750, 0.600, 0.600, 0.000, 1.000, 0.000,   // tactile_extreme
-3.000, 10.17, 0.400, 1.030, 2.300, 2.000, 1.420, 20.00, 0.750, 0.830, 1.560, 0.110, 1.070, 0.000, 0.200, 0.951, 10.00, 0.150, 0.248, 16., 0.300, 1.500, 0.850, 0.350, 0.600, 0.000, 1.000, 0.000,   // star_network
-0.000, 8.510, 0.190, 0.610, 0.000, 0.000, 3.350, 0.000, 0.000, 0.750, 12.62, 0.060, 0.000, 0.000, 0.270, 0.904, 1.000, 0.060, 0.042, 7.0, 0.600, 0.800, 0.900, 0.300, 0.600, 0.000, 1.000, 0.000,   // enmeshed_singularities
-0.000, 0.820, 0.030, 0.1800, 0.00, 0.000, 0.260, 0.000, 0.000, 0.000, 20.00, 0.650, 0.200, 0.900, 0.140, 0.939, 1.000, 0.470, 0.430, 10., 0.150, 0.900, 0.700, 0.800, 0.600, 0.000, 1.000, 0.000,   // waves_upturn
-0.000, 8.440, 0.080, 4.820, 0.000, 0.000, 1.190, 0.000, 0.000, 0.000, 0.330, 0.010, 0.000, 0.000, 0.040, 0.980, 1.000, 0.320, 0.172, 7.0, 0.250, 1.100, 0.650, 0.700, 0.600, 0.000, 1.000, 0.000,   // turing
-1.660, 19.26, 0.060, 1.260, 0.000, 0.000, 1.650, 0.000, 0.000, 0.060, 5.740, 0.080, 0.000, 3.040, 0.110, 0.988, 3.000, 0.134, 0.221, 19., 0.400, 0.700, 0.800, 0.400, 0.600, 0.000, 1.000, 0.000,   // petri_worms
-0.000, 17.54, 0.080, 0.640, 0.000, 0.000, 1.800, 0.000, 0.000, 0.100, 20.00, 0.060, 0.400, 0.000, 0.200, 0.939, 1.000, 0.200, 0.283, 14., 0.700, 0.500, 0.750, 0.500, 0.600, 0.000, 1.000, 0.000,   // a_rooting
-1.500, 1.940, 0.280, 1.730, 1.120, 0.710, 0.180, 2.220, 0.850, 0.500, 4.130, 0.110, 1.120, 0.000, 0.020, 0.850, 1.000, 0.140, 0.234, 11., 0.350, 1.300, 0.600, 0.900, 0.600, 0.000, 1.000, 0.000,   // more_individuals
-8.340, 3.860, 0.030, 1.210, 1.400, 0.300, 1.130, 5.500, 0.390, 17.85, 8.510, 0.960, 0.000, 7.140, 0.020, 0.781, 1.000, 0.200, 0.166, 16., 0.900, 0.600, 0.850, 0.300, 0.600, 0.000, 1.000, 0.000,   // slow_metastructure
-2.870, 3.040, 0.280, 0.090, 0.000, 0.000, 0.440, 0.850, 0.000, 0.000, 2.220, 0.140, 0.300, 0.850, 0.020, 0.891, 1.000, 0.140, 0.166, 21., 0.450, 0.800, 0.700, 0.600, 0.600, 0.000, 1.000, 0.000,   // sloppy_bucky
-0.140, 1.120, 0.190, 0.270, 1.400, 0.000, 1.130, 2.000, 0.390, 0.750, 2.220, 0.190, 0.000, 7.140, 0.210, 0.795, 1.000, 0.120, 0.166, 19., 0.550, 1.000, 0.900, 0.400, 0.600, 0.000, 1.000, 0.000,   // massive_structure
-0.001, 2.540, 0.080, 0.000, 0.000, 0.000, 3.350, 0.000, 0.000, 0.100, 12.62, 0.060, 0.000, 0.000, 0.270, 0.877, 1.000, 0.250, 0.344, 5.0, 0.650, 0.900, 0.800, 0.500, 0.600, 0.000, 1.000, 0.000,   // speed_modulation
-0.000, 20.00, 0.080, 5.280, 0.000, 0.000, 5.200, 0.000, 0.000, 1.440, 1.560, 0.060, 1.810, 0.000, 0.050, 0.987, 1.000, 0.280, 0.172, 16., 0.750, 0.700, 0.600, 0.800, 0.600, 0.000, 1.000, 0.000,   // emergent_hex_waves
-0.000, 17.26, 0.280, 0.350, 1.120, 0.660, 1.470, 0.570, 1.020, 0.750, 19.18, 0.390, 0.000, 1.940, 0.130, 0.959, 1.000, 0.110, 0.135, 21., 0.100, 1.400, 0.950, 0.250, 0.600, 0.000, 1.000, 0.000,   // formalisms
-0.000, 89.60, 20.00, 1.300, 0.000, 0.000, 1.300, 1.400, 1.070, 0.750, 69.08, 2.220, 0.300, 0.000, 0.080, 0.959, 1.000, 0.160, 0.332, 10., 0.850, 0.500, 0.700, 0.700, 0.600, 0.000, 1.000, 0.000,   // growing_on_a_sea_of_sand
-4.240, 75.92, 0.000, 4.390, 0.000, 0.000, 1.300, 171.7, 20.00, 6.220, 7.520, 1.120, 0.000, 0.000, 0.060, 0.877, 5.000, 0.230, 0.166, 11., 0.950, 1.200, 0.800, 0.400, 0.600, 0.000, 1.000, 0.000,   // grid_of_sorts
-17.92, 89.60, 3.040, 2.670, 34.88, 10.70, 0.350, 294.8, 0.000, 0.001, 82.76, 20.00, 0.000, 0.000, 0.005, 0.999, 1.000, 0.330, 0.289, 6.0, 0.200, 0.800, 0.900, 0.600, 0.600, 0.000, 1.000, 0.000,   // negotiation_of_highways
-0.000, 28.04, 20.00, 0.180, 26.74, 20.00, 0.010, 1.400, 1.120, 0.830, 0.000, 0.000, 2.540, 0.000, 0.120, 0.959, 1.000, 0.230, 0.166, 5.0, 0.600, 1.100, 0.750, 0.500, 0.600, 0.000, 1.000, 0.000,   // transmission_tower
-2.000, 28.04, 0.000, 0.090, 1.000, 0.000, 0.800, 2.080, 0.000, 0.000, 2.000, 0.030, 0.820, 0.000, 0.050, 0.889, 1.000, 0.200, 0.394, 16., 0.400, 0.900, 0.650, 0.750, 0.600, 0.000, 1.000, 0.000,   // sacred_network_nodules
-0.000, 0.850, 0.010, 0.350, 1.400, 0.000, 1.810, 0.570, 1.450, 0.010, 4.000, 0.020, 0.300, 0.000, 0.110, 0.945, 1.000, 0.070, 0.049, 16., 0.300, 1.300, 0.800, 0.350, 0.600, 0.000, 1.000, 0.000,   // positive_negative_space
-1.660, 20.00, 33.19, 1.030, 39.03, 2.540, 2.650, 364.8, 8.200, 0.050, 2.150, 2.540, 0.000, 0.000, 0.001, 0.975, 1.000, 0.160, 0.115, 14., 0.500, 1.600, 0.700, 0.650, 0.600, 0.000, 1.000, 0.000,   // circular_consolidation
-0.000, 9.000, 2000., 1.030, 39.03, 2.540, 2.650, 174.3, 8.200, 6.360, 5.000, 20.00, 0.000, 0.000, 0.001, 0.975, 1.000, 0.080, 0.115, 14., 0.800, 0.700, 0.850, 0.550, 0.600, 0.000, 1.000, 0.000,   // radiative_nexus
-17.92, 89.60, 3.040, 2.670, 34.88, 10.70, 3.350, 294.8, 0.000, 0.001, 69.76, 116.4, 0.000, 0.000, 0.005, 0.999, 1.000, 0.330, 0.289, 10., 0.150, 1.500, 0.900, 0.300, 0.600, 0.000, 1.000, 0.000,   // unfold_time_but_only_in_a_line
-0.000, 20.00, 3.000, 0.260, 2.150, 4.760, 0.410, 6.600, 12.62, 0.300, 6.600, 0.037, 0.400, 0.040, 0.030, 0.926, 1.000, 0.450, 0.459, 10., 0.000, 0.000, 0.000, 1.000, 0.600, 0.000, 1.000, 0.000,   // ink_on_white
-0.000, 89.60, 20.00, 1.300, 0.000, 0.000, 0.180, 1.400, 1.070, 0.750, 69.08, 2.220, 0.300, 0.000, 0.080, 0.960, 1.000, 0.160, 0.332, 7.0, 0.350, 1.100, 0.800, 0.400, 0.600, 0.000, 1.000, 0.000,   // network_time
-0.000, 0.800, 0.020, 0.100, 1.000, 0.000, 0.260, 0.100, 2.790, 0.830, 32.88, 37.74, 0.090, 0.330, 0.100, 0.939, 1.000, 0.430, 0.262, 3.0, 0.750, 0.600, 0.950, 0.700, 0.600, 0.000, 1.000, 0.000,   // inverse_network
-27.50, 2.000, 2.540, 0.880, 26.74, 0.000, 0.090, 267.4, 1.400, 0.100, 5.000, 7.410, 1.400, 14.25, 0.140, 0.754, 1.000, 0.600, 0.627, 11., 0.900, 1.200, 0.600, 0.800, 0.600, 0.000, 1.000, 0.000,   // vanishing_points
-5.350, 6.000, 0.000, 0.100, 1.000, 0.000, 0.180, 1.000, 0.000, 0.000, 2.150, 0.330, 0.000, 0.000, 0.100, 0.840, 2.000, 0.230, 0.164, 16., 0.250, 1.400, 0.750, 0.600, 0.600, 0.000, 1.000, 0.000,   // neuron_cluster
-0.000, 6.000, 100.0, 0.157, 1.000, 1.070, 0.000, 1.000, 5.000, 0.830, 5.000, 20.00, 0.400, 0.000, 0.003, 0.914, 1.000, 0.250, 0.361, 6.0, 0.450, 0.800, 0.700, 0.900, 0.600, 0.000, 1.000, 0.000,   // scaling_nodule_emergence
-0.005, 6.000, 205.3, 0.000, 1.000, 1.000, 0.180, 2.200, 20.00, 0.830, 3.000, 1.320, 0.400, 0.000, 0.001, 0.939, 1.000, 0.150, 0.361, 6.0, 0.650, 1.000, 0.850, 0.500, 0.600, 0.000, 1.000, 0.000,   // probe_emergence_from_line
-0.000, 15.00, 8.600, 0.030, 1.000, 0.000, 0.340, 2.000, 1.070, 0.220, 15.00, 0.100, 2.300, 0.820, 1.000, 0.705, 1.000, 0.420, 0.373, 8.0, 0.100, 1.800, 0.600, 0.750, 0.600, 0.000, 1.000, 0.000,   // hyp_offset
-0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 1.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.230, 0.166, 4.0, 0.500, 0.500, 0.500, 0.500, 0.600, 0.000, 1.000, 0.000,   // noise
-0.000, 32.88, 402.0, 0.410, 3.000, 0.000, 0.100, 0.000, 0.000, 0.300, 6.000, 0.000, 0.000, 0.000, 0.090, 0.914, 1.000, 0.460, 0.290, 6.0, 0.850, 0.900, 0.700, 0.400, 0.600, 0.000, 1.000, 0.000,   // strike
-5.350, 2.150, 0.000, 0.340, 20.59, 0.000, 0.490, 0.100, 2.790, 0.830, 125.1, 45.11, 0.090, 0.000, 0.190, 0.975, 1.000, 0.550, 0.213, 6.0, 0.700, 1.300, 0.800, 0.600, 0.600, 0.000, 1.000, 0.000,   // suture
-0.000, 100.5, 20.00, 0.180, 14.44, 0.000, 1.260, 0.000, 0.000, 0.830, 75.91, 0.860, 0.300, 0.000, 0.390, 0.975, 2.000, 0.250, 0.250, 11., 0.550, 0.700, 0.900, 0.800, 0.600, 0.000, 1.000, 0.000,   // surface_tension_sharp
-0.000, 0.800, 0.020, 0.340, 20.59, 0.000, 0.260, 0.100, 2.790, 0.830, 125.1, 45.11, 0.580, 0.330, 0.190, 0.975, 1.000, 0.520, 0.238, 5.0, 0.300, 1.100, 0.650, 0.950, 0.600, 0.000, 1.000, 0.000,   // pincushion
-0.000, 0.800, 0.020, 5.200, 1.000, 0.000, 0.260, 0.100, 2.790, 0.830, 32.88, 37.74, 0.090, 0.330, 0.100, 0.939, 1.000, 0.450, 0.189, 6.0, 0.800, 0.800, 0.750, 0.700, 0.600, 0.000, 1.000, 0.000,   // clear_spaghetti
-17.92, 89.60, 3.040, 2.670, 34.88, 10.70, 5.770, 294.8, 0.000, 0.001, 82.76, 20.00, 0.000, 0.000, 0.005, 0.999, 1.000, 0.330, 0.289, 10., 0.950, 1.600, 0.550, 0.650, 0.600, 0.000, 1.000, 0.000,   // negotiation_of_zoning
-1.829, 23.65, 0.029, 0.674, 0.500, 0.000, 1.224, 1.039, 0.000, 0.029, 3.869, 0.054, 0.409, 1.519, 0.080, 0.938, 2.000, 0.065, 0.307, 18., 0.600, 1.000, 0.800, 0.350, 0.600, 0.000, 1.000, 0.000,   // hexa1833
+0.000, 4.000, 0.300, 0.100, 51.32, 20.00, 0.410, 4.000, 0.000, 0.100, 6.000, 0.100, 0.000, 0.000, 0.400, 0.705, 1.000, 0.300, 0.250, 8.0, 0.200, 0.800, 0.700, 0.300, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010,   // pure_multiscale
+0.000, 28.04, 14.53, 0.090, 1.000, 0.000, 0.010, 1.400, 1.120, 0.830, 0.000, 0.000, 0.570, 0.030, 0.070, 0.986, 1.000, 0.230, 0.166, 6.0, 0.500, 1.200, 0.800, 0.500, 0.600, 0.000, 1.000, 0.000, 0.150, 0.008,   // hex_hole_open
+17.92, 0.000, 0.000, 0.520, 0.000, 0.000, 0.180, 0.000, 0.000, 0.100, 6.050, 0.170, 0.000, 0.000, 0.040, 0.973, 1.000, 0.530, 0.455, 16., 0.000, 0.600, 0.900, 0.200, 0.600, 0.000, 1.000, 0.000, 0.100, 0.012,   // vertebrata
+3.000, 0.000, 0.000, 0.350, 0.000, 0.000, 0.000, 0.570, 2.000, 0.010, 4.000, 0.020, 0.300, 0.000, 0.110, 0.945, 1.000, 0.180, 0.248, 16., 0.100, 1.000, 0.600, 0.400, 0.600, 0.000, 1.000, 0.000, 0.000, 0.002,   // traffic_many_lanes
+13.95, 7.460, 0.110, 4.040, 5.000, 0.520, 0.490, 0.580, 0.180, 7.590, 3.040, 0.160, 4.760, 0.000, 0.610, 0.975, 1.000, 0.348, 0.172, 5.0, 0.800, 0.400, 0.750, 0.600, 0.600, 0.000, 1.000, 0.000, 0.000, 0.008,   // tactile_extreme
+3.000, 10.17, 0.400, 1.030, 2.300, 2.000, 1.420, 20.00, 0.750, 0.830, 1.560, 0.110, 1.070, 0.000, 0.200, 0.951, 10.00, 0.150, 0.248, 16., 0.300, 1.500, 0.850, 0.350, 0.600, 0.000, 1.000, 0.000, 0.000, 0.010,   // star_network
+0.000, 8.510, 0.190, 0.610, 0.000, 0.000, 3.350, 0.000, 0.000, 0.750, 12.62, 0.060, 0.000, 0.000, 0.270, 0.904, 1.000, 0.060, 0.042, 7.0, 0.600, 0.800, 0.900, 0.300, 0.600, 0.000, 1.000, 0.000, 0.000, 0.006,   // enmeshed_singularities
+0.000, 0.820, 0.030, 0.1800, 0.00, 0.000, 0.260, 0.000, 0.000, 0.000, 20.00, 0.650, 0.200, 0.900, 0.140, 0.939, 1.000, 0.470, 0.430, 10., 0.150, 0.900, 0.700, 0.800, 0.600, 0.000, 1.000, 0.000, 0.000, 0.001,   // waves_upturn
+0.000, 8.440, 0.080, 4.820, 0.000, 0.000, 1.190, 0.000, 0.000, 0.000, 0.330, 0.010, 0.000, 0.000, 0.040, 0.980, 1.000, 0.320, 0.172, 7.0, 0.250, 1.100, 0.650, 0.700, 0.600, 0.000, 1.000, 0.000, 0.000, 0.004,   // turing
+1.660, 19.26, 0.060, 1.260, 0.000, 0.000, 1.650, 0.000, 0.000, 0.060, 5.740, 0.080, 0.000, 3.040, 0.110, 0.988, 3.000, 0.134, 0.221, 19., 0.400, 0.700, 0.800, 0.400, 0.600, 0.000, 1.000, 0.000, 0.000, 0.002,   // petri_worms
+0.000, 17.54, 0.080, 0.640, 0.000, 0.000, 1.800, 0.000, 0.000, 0.100, 20.00, 0.060, 0.400, 0.000, 0.200, 0.939, 1.000, 0.200, 0.283, 14., 0.700, 0.500, 0.750, 0.500, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // a_rooting
+1.500, 1.940, 0.280, 1.730, 1.120, 0.710, 0.180, 2.220, 0.850, 0.500, 4.130, 0.110, 1.120, 0.000, 0.020, 0.850, 1.000, 0.140, 0.234, 11., 0.350, 1.300, 0.600, 0.900, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // more_individuals
+8.340, 3.860, 0.030, 1.210, 1.400, 0.300, 1.130, 5.500, 0.390, 17.85, 8.510, 0.960, 0.000, 7.140, 0.020, 0.781, 1.000, 0.200, 0.166, 16., 0.900, 0.600, 0.850, 0.300, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // slow_metastructure
+2.870, 3.040, 0.280, 0.090, 0.000, 0.000, 0.440, 0.850, 0.000, 0.000, 2.220, 0.140, 0.300, 0.850, 0.020, 0.891, 1.000, 0.140, 0.166, 21., 0.450, 0.800, 0.700, 0.600, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // sloppy_bucky
+0.140, 1.120, 0.190, 0.270, 1.400, 0.000, 1.130, 2.000, 0.390, 0.750, 2.220, 0.190, 0.000, 7.140, 0.210, 0.795, 1.000, 0.120, 0.166, 19., 0.550, 1.000, 0.900, 0.400, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // massive_structure
+0.001, 2.540, 0.080, 0.000, 0.000, 0.000, 3.350, 0.000, 0.000, 0.100, 12.62, 0.060, 0.000, 0.000, 0.270, 0.877, 1.000, 0.250, 0.344, 5.0, 0.650, 0.900, 0.800, 0.500, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // speed_modulation
+0.000, 20.00, 0.080, 5.280, 0.000, 0.000, 5.200, 0.000, 0.000, 1.440, 1.560, 0.060, 1.810, 0.000, 0.050, 0.987, 1.000, 0.280, 0.172, 16., 0.750, 0.700, 0.600, 0.800, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // emergent_hex_waves
+0.000, 17.26, 0.280, 0.350, 1.120, 0.660, 1.470, 0.570, 1.020, 0.750, 19.18, 0.390, 0.000, 1.940, 0.130, 0.959, 1.000, 0.110, 0.135, 21., 0.100, 1.400, 0.950, 0.250, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // formalisms
+0.000, 89.60, 20.00, 1.300, 0.000, 0.000, 1.300, 1.400, 1.070, 0.750, 69.08, 2.220, 0.300, 0.000, 0.080, 0.959, 1.000, 0.160, 0.332, 10., 0.850, 0.500, 0.700, 0.700, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // growing_on_a_sea_of_sand
+4.240, 75.92, 0.000, 4.390, 0.000, 0.000, 1.300, 171.7, 20.00, 6.220, 7.520, 1.120, 0.000, 0.000, 0.060, 0.877, 5.000, 0.230, 0.166, 11., 0.950, 1.200, 0.800, 0.400, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // grid_of_sorts
+17.92, 89.60, 3.040, 2.670, 34.88, 10.70, 0.350, 294.8, 0.000, 0.001, 82.76, 20.00, 0.000, 0.000, 0.005, 0.999, 1.000, 0.330, 0.289, 6.0, 0.200, 0.800, 0.900, 0.600, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // negotiation_of_highways
+0.000, 28.04, 20.00, 0.180, 26.74, 20.00, 0.010, 1.400, 1.120, 0.830, 0.000, 0.000, 2.540, 0.000, 0.120, 0.959, 1.000, 0.230, 0.166, 5.0, 0.600, 1.100, 0.750, 0.500, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // transmission_tower
+2.000, 28.04, 0.000, 0.090, 1.000, 0.000, 0.800, 2.080, 0.000, 0.000, 2.000, 0.030, 0.820, 0.000, 0.050, 0.889, 1.000, 0.200, 0.394, 16., 0.400, 0.900, 0.650, 0.750, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // sacred_network_nodules
+0.000, 0.850, 0.010, 0.350, 1.400, 0.000, 1.810, 0.570, 1.450, 0.010, 4.000, 0.020, 0.300, 0.000, 0.110, 0.945, 1.000, 0.070, 0.049, 16., 0.300, 1.300, 0.800, 0.350, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // positive_negative_space
+1.660, 20.00, 33.19, 1.030, 39.03, 2.540, 2.650, 364.8, 8.200, 0.050, 2.150, 2.540, 0.000, 0.000, 0.001, 0.975, 1.000, 0.160, 0.115, 14., 0.500, 1.600, 0.700, 0.650, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // circular_consolidation
+0.000, 9.000, 2000., 1.030, 39.03, 2.540, 2.650, 174.3, 8.200, 6.360, 5.000, 20.00, 0.000, 0.000, 0.001, 0.975, 1.000, 0.080, 0.115, 14., 0.800, 0.700, 0.850, 0.550, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // radiative_nexus
+17.92, 89.60, 3.040, 2.670, 34.88, 10.70, 3.350, 294.8, 0.000, 0.001, 69.76, 116.4, 0.000, 0.000, 0.005, 0.999, 1.000, 0.330, 0.289, 10., 0.150, 1.500, 0.900, 0.300, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // unfold_time_but_only_in_a_line
+0.000, 20.00, 3.000, 0.260, 2.150, 4.760, 0.410, 6.600, 12.62, 0.300, 6.600, 0.037, 0.400, 0.040, 0.030, 0.926, 1.000, 0.450, 0.459, 10., 0.000, 0.000, 0.000, 1.000, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // ink_on_white
+0.000, 89.60, 20.00, 1.300, 0.000, 0.000, 0.180, 1.400, 1.070, 0.750, 69.08, 2.220, 0.300, 0.000, 0.080, 0.960, 1.000, 0.160, 0.332, 7.0, 0.350, 1.100, 0.800, 0.400, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // network_time
+0.000, 0.800, 0.020, 0.100, 1.000, 0.000, 0.260, 0.100, 2.790, 0.830, 32.88, 37.74, 0.090, 0.330, 0.100, 0.939, 1.000, 0.430, 0.262, 3.0, 0.750, 0.600, 0.950, 0.700, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // inverse_network
+27.50, 2.000, 2.540, 0.880, 26.74, 0.000, 0.090, 267.4, 1.400, 0.100, 5.000, 7.410, 1.400, 14.25, 0.140, 0.754, 1.000, 0.600, 0.627, 11., 0.900, 1.200, 0.600, 0.800, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // vanishing_points
+5.350, 6.000, 0.000, 0.100, 1.000, 0.000, 0.180, 1.000, 0.000, 0.000, 2.150, 0.330, 0.000, 0.000, 0.100, 0.840, 2.000, 0.230, 0.164, 16., 0.250, 1.400, 0.750, 0.600, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // neuron_cluster
+0.000, 6.000, 100.0, 0.157, 1.000, 1.070, 0.000, 1.000, 5.000, 0.830, 5.000, 20.00, 0.400, 0.000, 0.003, 0.914, 1.000, 0.250, 0.361, 6.0, 0.450, 0.800, 0.700, 0.900, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // scaling_nodule_emergence
+0.005, 6.000, 205.3, 0.000, 1.000, 1.000, 0.180, 2.200, 20.00, 0.830, 3.000, 1.320, 0.400, 0.000, 0.001, 0.939, 1.000, 0.150, 0.361, 6.0, 0.650, 1.000, 0.850, 0.500, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // probe_emergence_from_line
+0.000, 15.00, 8.600, 0.030, 1.000, 0.000, 0.340, 2.000, 1.070, 0.220, 15.00, 0.100, 2.300, 0.820, 1.000, 0.705, 1.000, 0.420, 0.373, 8.0, 0.100, 1.800, 0.600, 0.750, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // hyp_offset
+0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 1.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.230, 0.166, 4.0, 0.500, 0.500, 0.500, 0.500, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // noise
+0.000, 32.88, 402.0, 0.410, 3.000, 0.000, 0.100, 0.000, 0.000, 0.300, 6.000, 0.000, 0.000, 0.000, 0.090, 0.914, 1.000, 0.460, 0.290, 6.0, 0.850, 0.900, 0.700, 0.400, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // strike
+5.350, 2.150, 0.000, 0.340, 20.59, 0.000, 0.490, 0.100, 2.790, 0.830, 125.1, 45.11, 0.090, 0.000, 0.190, 0.975, 1.000, 0.550, 0.213, 6.0, 0.700, 1.300, 0.800, 0.600, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // suture
+0.000, 100.5, 20.00, 0.180, 14.44, 0.000, 1.260, 0.000, 0.000, 0.830, 75.91, 0.860, 0.300, 0.000, 0.390, 0.975, 2.000, 0.250, 0.250, 11., 0.550, 0.700, 0.900, 0.800, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // surface_tension_sharp
+0.000, 0.800, 0.020, 0.340, 20.59, 0.000, 0.260, 0.100, 2.790, 0.830, 125.1, 45.11, 0.580, 0.330, 0.190, 0.975, 1.000, 0.520, 0.238, 5.0, 0.300, 1.100, 0.650, 0.950, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // pincushion
+0.000, 0.800, 0.020, 5.200, 1.000, 0.000, 0.260, 0.100, 2.790, 0.830, 32.88, 37.74, 0.090, 0.330, 0.100, 0.939, 1.000, 0.450, 0.189, 6.0, 0.800, 0.800, 0.750, 0.700, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // clear_spaghetti
+17.92, 89.60, 3.040, 2.670, 34.88, 10.70, 5.770, 294.8, 0.000, 0.001, 82.76, 20.00, 0.000, 0.000, 0.005, 0.999, 1.000, 0.330, 0.289, 10., 0.950, 1.600, 0.550, 0.650, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // negotiation_of_zoning
+1.829, 23.65, 0.029, 0.674, 0.500, 0.000, 1.224, 1.039, 0.000, 0.029, 3.869, 0.054, 0.409, 1.519, 0.080, 0.938, 2.000, 0.065, 0.307, 18., 0.600, 1.000, 0.800, 0.350, 0.600, 0.000, 1.000, 0.000, 0.000, 0.005,   // hexa1833
 `;
 // Global state variables
 let currentPresetIndex = DEFAULT_POINT_INDEX - 1;
@@ -95,9 +96,9 @@ let frameCounter = 0;
 
 // Process parameter data
 for (let lineIndex = 0; lineIndex < parameterLines.length; ++lineIndex) {
-  // Only process lines with enough parameters (at least 29 for the parameters + 1 for the name)
-  if (parameterLines[lineIndex].length >= 29) {
-    parameterSets.push(new Float32Array(parameterLines[lineIndex].slice(0, 28)));
+  // Only process lines with enough parameters (at least 31 for the parameters + 1 for the name)
+  if (parameterLines[lineIndex].length >= 31) {
+    parameterSets.push(new Float32Array(parameterLines[lineIndex].slice(0, 30)));
 
     // Add blur iteration for this valid parameter set
     if (parameterLines[lineIndex].length > 16) {
@@ -107,7 +108,7 @@ for (let lineIndex = 0; lineIndex < parameterLines.length; ++lineIndex) {
     }
 
     // Only add preset name if we successfully added a parameter set
-    let presetName = parameterLines[lineIndex][28] + "";
+    let presetName = parameterLines[lineIndex][30] + "";
     presetName = presetName.replace(/\s|\//g, "");
     presetNames.push(presetName);
   }
@@ -141,7 +142,7 @@ console.log("Point " + DEFAULT_POINT_INDEX.toString().padStart(2, "0") + " (" + 
 const PARAMETER_NAMES = [
   'param0', 'param1', 'param2', 'param3', 'param4', 'param5', 'param6', 'param7', 'param8', 'param9',
   'param10', 'param11', 'param12', 'param13', 'param14', 'param15', 'param16', 'param17', 'param18', 'param19',
-  'param20', 'param21', 'param22', 'param23'
+  'param20', 'param21', 'param22', 'param23', 'param24', 'param25', 'param26', 'param27', 'param28', 'param29'
 ];
 
 // Physarum simulation parameter names based on Sage Jenson's "36 Points" algorithm
@@ -173,7 +174,9 @@ const PHYSARUM_PARAMETER_NAMES = [
   'lightnessBase',             // p24: Base lightness value (0-1)
   'lightnessMultiplier',       // p25: Lightness multiplier based on trail intensity
   'contrastBase',              // p26: Base contrast value (0-2, 1=normal)
-  'contrastMultiplier'         // p27: Contrast multiplier based on trail intensity
+  'contrastMultiplier',        // p27: Contrast multiplier based on trail intensity
+  'chromaticAberrationStrength', // p28: Chromatic aberration effect strength (0-1)
+  'chromaticAberrationOffset'  // p29: Chromatic aberration color separation offset (0-1)
 ];
 
 // Combined parameter access - allows both numeric and semantic naming
@@ -219,7 +222,7 @@ function createParameterProxy() {
 
     // Apply parameter changes with optional smooth transition
     applyChanges(newParams, smooth = true) {
-      if ((Array.isArray(newParams) || newParams instanceof Float32Array) && newParams.length === 28) {
+      if ((Array.isArray(newParams) || newParams instanceof Float32Array) && newParams.length === 30) {
         const targetParams = new Float32Array(newParams);
 
         // Always update the parameter set immediately
@@ -243,7 +246,7 @@ function createParameterProxy() {
 
         console.log(`Parameters updated for preset "${presetNames[currentPresetIndex]}" (${smooth ? 'smooth' : 'instant'})`);
       } else {
-        console.error('Invalid parameters: must be an array of 28 numbers');
+        console.error('Invalid parameters: must be an array of 30 numbers');
       }
     },
     // Reset current preset to original values
@@ -251,15 +254,15 @@ function createParameterProxy() {
       const originalIndex = currentPresetIndex;
       // Force reload from original data
       const originalLine = parameterLines[originalIndex];
-      if (originalLine && originalLine.length >= 29) {
-        const originalParams = new Float32Array(originalLine.slice(0, 28));
+      if (originalLine && originalLine.length >= 31) {
+        const originalParams = new Float32Array(originalLine.slice(0, 30));
         this.applyChanges(originalParams, false);
       }
     },
 
     // Get parameter by index
     getParam(index) {
-      if (index >= 0 && index < 28) {
+      if (index >= 0 && index < 30) {
         return this.currentParams[index];
       }
       return undefined;
@@ -267,7 +270,7 @@ function createParameterProxy() {
 
     // Set parameter by index
     setParam(index, value, smooth = true) {
-      if (index >= 0 && index < 28 && typeof value === 'number') {
+      if (index >= 0 && index < 30 && typeof value === 'number') {
         const newParams = [...this.currentParams];
         newParams[index] = value;
         this.applyChanges(newParams, smooth);
@@ -281,7 +284,7 @@ function createParameterProxy() {
 
       for (const [index, value] of Object.entries(paramUpdates)) {
         const paramIndex = parseInt(index);
-        if (paramIndex >= 0 && paramIndex < 28 && typeof value === 'number') {
+        if (paramIndex >= 0 && paramIndex < 30 && typeof value === 'number') {
           newParams[paramIndex] = value;
           hasChanges = true;
         }
@@ -317,8 +320,8 @@ function createParameterProxy() {
         return;
       }
 
-      if (currentParams.length !== 28) {
-        console.error(`currentParams has wrong length: ${currentParams.length}, expected 28`);
+      if (currentParams.length !== 30) {
+        console.error(`currentParams has wrong length: ${currentParams.length}, expected 30`);
         return;
       }
 
@@ -374,14 +377,16 @@ function createParameterProxy() {
         'Lightness Base - base lightness value for color generation (0-1)',
         'Lightness Multiplier - scales lightness based on trail intensity',
         'Contrast Base - base contrast value for color generation (0-2, 1=normal)',
-        'Contrast Multiplier - scales contrast based on trail intensity'
+        'Contrast Multiplier - scales contrast based on trail intensity',
+        'Chromatic Aberration Strength - controls the intensity of chromatic aberration effect (0-1)',
+        'Chromatic Aberration Offset - controls the color separation distance (0-1)'
       ];
       return descriptions[index] || 'Unknown parameter';
     },
 
     // Get all parameter information as an array
     getAllParameterInfo() {
-      return Array.from({length: 28}, (_, i) => this.getParameterInfo(i));
+      return Array.from({length: 30}, (_, i) => this.getParameterInfo(i));
     },
 
     // Set physarum behavior parameters with semantic grouping
@@ -440,6 +445,14 @@ function createParameterProxy() {
       });
     },
 
+    // Set chromatic aberration parameters
+    setChromaticAberration(strength, offset) {
+      this.setParams({
+        28: strength,
+        29: offset
+      });
+    },
+
     // Expose systemParams for system-level controls
     get systemParams() {
       return systemParams;
@@ -469,7 +482,7 @@ function createParameterProxy() {
       // Handle parameter access by index (p0, p1, etc.)
       if (typeof prop === 'string' && prop.startsWith('p') && prop.length <= 3) {
         const index = parseInt(prop.substring(1));
-        if (!isNaN(index) && index >= 0 && index < 20) {
+        if (!isNaN(index) && index >= 0 && index < 30) {
           return target.getParam(index);
         }
       }
@@ -495,7 +508,7 @@ function createParameterProxy() {
       // Handle parameter setting by index (p0, p1, etc.)
       if (typeof prop === 'string' && prop.startsWith('p') && prop.length <= 3) {
         const index = parseInt(prop.substring(1));
-        if (!isNaN(index) && index >= 0 && index < 20 && typeof value === 'number') {
+        if (!isNaN(index) && index >= 0 && index < 30 && typeof value === 'number') {
           target.setParam(index, value, true);
           return true;
         }
@@ -514,7 +527,7 @@ function createParameterProxy() {
       return prop in target || ALL_PARAMETER_NAMES.includes(prop) ||
              (typeof prop === 'string' && prop.startsWith('p') &&
               !isNaN(parseInt(prop.substring(1))) &&
-              parseInt(prop.substring(1)) >= 0 && parseInt(prop.substring(1)) < 20);
+              parseInt(prop.substring(1)) >= 0 && parseInt(prop.substring(1)) < 30);
     }
   });
 }
@@ -740,6 +753,7 @@ console.log('  phi.setMovementBehavior(1,0,0,2,0,0)    // Set movement parameter
 console.log('  phi.setVisualParams(0.2, 0.3, 8)       // Set visual parameters');
 console.log('  phi.setTrailParams(0.85, 1, 1)         // Set trail parameters');
 console.log('  phi.setColorParams(0.5,0.2,0.8,0.1,0.6,0.0,1.0,0.0) // Set color parameters including contrast');
+console.log('  phi.setChromaticAberration(0.5, 0.01)  // Set chromatic aberration (strength, offset)');
 console.log('');
 console.log('Animation utilities:');
 console.log('  phi.animate.oscillate(0, 0, 10, 1)     // Oscillate param 0 between 0-10');
@@ -761,7 +775,9 @@ console.log('  Movement: rotationAngleBase/Multiplier/Exponent, moveDistanceBase
 console.log('  Position: positionOffsetY, positionOffsetHeading');
 console.log('  Trail: trailSenseScale, decayFactor, blurIterations');
 console.log('  Visual: drawOpacity, fillOpacity, depositAmount');
+console.log('  Effects: chromaticAberrationStrength, chromaticAberrationOffset');
 console.log('');
+console.log('💡 Try: phi.chromaticAberrationStrength = 0.8; phi.chromaticAberrationOffset = 0.02 for optical effects!');
 console.log('💡 Try: phi.sensorDistanceBase = 15; phi.animate.oscillate(0, 5, 25) for live exploration!');
 console.log('');
 console.log('🎛️  UI Features:');
@@ -921,7 +937,7 @@ out float v_A;
 out float v_T;
 uniform vec2 i_dim;
 uniform int pen;
-uniform float[28] v;
+uniform float[30] v;
 uniform float[8] mps;
 uniform int frame;
 uniform int mouseButton;
@@ -1015,7 +1031,7 @@ void main() {
         source: `#version 300 es
 precision highp float;
 out vec4 FragColor;
-uniform float[28] v;
+uniform float[30] v;
 uniform int deposit;
 uniform sampler2D u_trail;
 uniform vec2 u_resolution;
@@ -1159,7 +1175,7 @@ uniform vec2 prevMouse;
 uniform sampler2D uUpdateTex;
 in vec2 vTexCoord;
 out vec2 outState;
-uniform float[28] v;
+uniform float[30] v;
 void main() {
   vec2 onePixel = 1.0 / uTextureSize;
   vec2 average = vec2(0.);
@@ -1183,7 +1199,7 @@ void main() {
       }
     ], null);
 
-    // Screen drawing shader
+    // Screen drawing shader with chromatic aberration
     this.drawScreen = createShaderProgram(this.gl, [
       { source: VERTEX_SHADER_SOURCE, type: this.gl.VERTEX_SHADER },
       {
@@ -1193,13 +1209,35 @@ in vec2 vTexCoord;
 out vec4 outColor;
 uniform sampler2D uDrawTex;
 uniform int invert;
+uniform float[30] v;
+uniform vec2 uTextureSize;
+
 void main() {
-  vec4 color = clamp(texture(uDrawTex, vTexCoord), 0., 1.);
-  color.a = 1.0;
+  float aberrationStrength = v[28];
+  float aberrationOffset = v[29];
+
+  // Calculate chromatic aberration effect
+  vec2 center = vec2(0.5, 0.5);
+  vec2 direction = vTexCoord - center;
+  float distance = length(direction);
+
+  // Scale the offset based on distance from center for radial aberration
+  vec2 radialOffset = normalize(direction) * aberrationOffset * aberrationStrength * distance;
+
+  // Sample red, green, and blue channels with different offsets
+  float red = texture(uDrawTex, vTexCoord - radialOffset).r;
+  float green = texture(uDrawTex, vTexCoord).g;
+  float blue = texture(uDrawTex, vTexCoord + radialOffset).b;
+
+  // Combine channels
+  vec4 color = vec4(red, green, blue, 1.0);
+
+  // Apply existing invert logic
   if (invert == 1) {
     color.xyz = vec3(1.) - color.xyz;
   }
-  outColor = color;
+
+  outColor = clamp(color, 0., 1.);
 }`,
         type: this.gl.FRAGMENT_SHADER
       }
@@ -1213,7 +1251,7 @@ void main() {
 precision highp float;
 in vec2 vTexCoord;
 out vec4 outColor;
-uniform float[28] v;
+uniform float[30] v;
 void main() {
   outColor = vec4(0., 0., 0., v[18]);
 }`,
@@ -1490,6 +1528,9 @@ void main() {
     this.gl.useProgram(this.drawScreen);
     // Invert colors for specific presets
     this.gl.uniform1i(this.getUniformLocation(this.drawScreen, "invert"), (currentPresetIndex == 27 || currentPresetIndex == 36) | 0);
+    // Set chromatic aberration parameters
+    this.gl.uniform1fv(this.getUniformLocation(this.drawScreen, "v"), this.lerpParams);
+    this.gl.uniform2f(this.getUniformLocation(this.drawScreen, "uTextureSize"), this.params.renderSize, this.params.renderSize);
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     this.gl.activeTexture(this.gl.TEXTURE0);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.screenTexture);
