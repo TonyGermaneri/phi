@@ -454,6 +454,28 @@
                 :step="0.001"
                 @update:model-value="updateParameter(18, $event)"
               />
+
+
+              <parameter-control
+                v-model="parameters.positionOffsetY"
+                title="Position Offset Y"
+                description="Vertical offset for trail sensing relative to agent position"
+                :min="-20"
+                :max="20"
+                :step="0.01"
+                @update:model-value="updateParameter(12, $event)"
+              />
+
+              <parameter-control
+                v-model="parameters.positionOffsetHeading"
+                title="Position Offset Heading"
+                description="Forward/backward offset for trail sensing relative to heading direction"
+                :min="-20"
+                :max="20"
+                :step="0.01"
+                @update:model-value="updateParameter(13, $event)"
+              />
+
             </v-tabs-window-item>
 
             <!-- Color Tab -->
@@ -571,26 +593,6 @@
                 @update:model-value="updateParameter(29, $event)"
               />
 
-              <v-card variant="tonal" class="mt-4">
-                <v-card-text>
-                  <p class="text-body-2">
-                    <strong>Color Evolution:</strong> Colors evolve organically based on trail intensity.
-                  </p>
-                  <p class="text-caption mt-2">
-                    The color system uses HSL (Hue, Saturation, Lightness) with dynamic hue, saturation, lightness, and contrast
-                    that respond to the same trail intensities that drive particle behavior, creating
-                    colors that naturally follow the organic patterns of the simulation.
-                  </p>
-                  <p class="text-body-2 mt-3">
-                    <strong>Chromatic Aberration:</strong> Post-processing effect that separates color channels.
-                  </p>
-                  <p class="text-caption mt-2">
-                    Chromatic aberration simulates the optical distortion found in real lenses, where different
-                    wavelengths of light focus at slightly different distances. This creates a subtle color fringing
-                    effect that can enhance the organic, lens-like quality of the visualization.
-                  </p>
-                </v-card-text>
-              </v-card>
             </v-tabs-window-item>
 
             <!-- Advanced Tab -->
@@ -599,190 +601,103 @@
                 <v-col cols="12">
                   <h3 class="mb-4">Advanced Parameters</h3>
                   <p class="text-body-2 mb-4">
-                    Position offsets and fine-tuning parameters for advanced users.
+                    Fine-tuning parameters for advanced users.
                   </p>
                 </v-col>
               </v-row>
 
               <parameter-control
-                v-model="parameters.positionOffsetY"
-                title="Position Offset Y"
-                description="Vertical offset for trail sensing relative to agent position"
-                :min="-20"
-                :max="20"
-                :step="0.01"
-                @update:model-value="updateParameter(12, $event)"
+                v-model="parameters.renderSize"
+                title="Render Size"
+                description="Resolution of the output canvas (pixels)"
+                :min="512"
+                :max="2048"
+                :step="1"
+                @update:model-value="updateSystemParameter('renderSize', $event)"
+              />
+
+              <hr class="mt-2" color="#333"/>
+
+              <v-select
+                v-model="parameters.simSize"
+                :items="[8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]"
+                label="Simulation Size"
+                hint="Resolution of the simulation grid (affects performance)"
+                persistent-hint
+                variant="outlined"
+                @update:model-value="updateSystemParameter('simSize', $event)"
+              ></v-select>
+
+              <parameter-control
+                v-model="parameters.particleDensity"
+                title="Particle Density"
+                description="Number of particles per simulation cell"
+                :min="0.1"
+                :max="10"
+                :step="0.1"
+                @update:model-value="updateSystemParameter('particleDensity', $event)"
               />
 
               <parameter-control
-                v-model="parameters.positionOffsetHeading"
-                title="Position Offset Heading"
-                description="Forward/backward offset for trail sensing relative to heading direction"
-                :min="-20"
-                :max="20"
-                :step="0.01"
-                @update:model-value="updateParameter(13, $event)"
+                v-model="parameters.drawPointsize"
+                title="Draw Point Size"
+                description="Size of individual particle points when rendered"
+                :min="0.5"
+                :max="5"
+                :step="0.1"
+                @update:model-value="updateSystemParameter('drawPointsize', $event)"
               />
 
-              <v-divider class="my-4"></v-divider>
+              <v-row>
+                <v-col cols="12">
+                  <v-switch
+                    v-model="parameters.displayParticles"
+                    label="Display Particles"
+                    color="primary"
+                    hide-details
+                    @update:model-value="updateSystemParameter('displayParticles', $event)"
+                  ></v-switch>
+                  <div class="text-caption text-medium-emphasis">
+                    Show or hide individual particle rendering
+                  </div>
+                </v-col>
+              </v-row>
 
-              <v-card variant="outlined">
-                <v-card-title>Interpolation Controls</v-card-title>
-                <v-card-text>
-                  <v-row>
-                    <v-col cols="12">
-                      <v-select
-                        v-model="interpolationTarget"
-                        :items="allPresetItems"
-                        label="Interpolate with preset"
-                        variant="outlined"
-                      >
-                        <template v-slot:item="{ props, item }">
-                          <v-list-item v-bind="props">
-                            <template v-slot:append v-if="item.raw.type === 'user'">
-                              <v-btn
-                                icon
-                                size="small"
-                                variant="text"
-                                @click.stop="exportUserPreset(item.raw.preset)"
-                              >
-                                <v-icon size="16">mdi-download</v-icon>
-                              </v-btn>
-                              <v-btn
-                                icon
-                                size="small"
-                                variant="text"
-                                color="error"
-                                @click.stop="deleteUserPreset(item.raw.preset)"
-                              >
-                                <v-icon size="16">mdi-delete</v-icon>
-                              </v-btn>
-                            </template>
-                          </v-list-item>
-                        </template>
-                      </v-select>
-                    </v-col>
-                    <v-col cols="12">
-                      <v-slider
-                        v-model="interpolationAmount"
-                        label="Interpolation Amount"
-                        :min="0"
-                        :max="1"
-                        :step="0.01"
-                        thumb-label
-                        @update:model-value="interpolatePresets"
-                      ></v-slider>
-                    </v-col>
-                  </v-row>
-                </v-card-text>
-              </v-card>
+              <parameter-control
+                v-model="parameters.canvasZoom"
+                title="Canvas Zoom"
+                description="Zoom level of the display canvas"
+                :min="0.1"
+                :max="3"
+                :step="0.1"
+                @update:model-value="updateSystemParameter('canvasZoom', $event)"
+              />
 
-              <v-divider class="my-4"></v-divider>
+              <parameter-control
+                v-model="parameters.convergenceRate"
+                title="Convergence Rate"
+                description="Speed of parameter transitions and smoothing"
+                :min="0.01"
+                :max="1"
+                :step="0.01"
+                @update:model-value="updateSystemParameter('convergenceRate', $event)"
+              />
 
-              <v-card variant="outlined">
-                <v-card-title>System Parameters</v-card-title>
-                <v-card-text>
-                  <v-row>
-                    <v-col cols="12">
-                      <p class="text-body-2 mb-4">
-                        Core system settings that affect rendering and simulation performance.
-                      </p>
-                    </v-col>
-                  </v-row>
+              <v-row>
+                <v-col cols="12">
+                  <v-switch
+                    v-model="parameters.smartLerp"
+                    label="Smart Lerp"
+                    color="primary"
+                    hide-details
+                    @update:model-value="updateSystemParameter('smartLerp', $event)"
+                  ></v-switch>
+                  <div class="text-caption text-medium-emphasis">
+                    Enable intelligent parameter interpolation
+                  </div>
+                </v-col>
+              </v-row>
 
-                  <parameter-control
-                    v-model="parameters.renderSize"
-                    title="Render Size"
-                    description="Resolution of the output canvas (pixels)"
-                    :min="512"
-                    :max="2048"
-                    :step="1"
-                    @update:model-value="updateSystemParameter('renderSize', $event)"
-                  />
-
-                  <hr class="mt-2" color="#333"/>
-
-                  <v-select
-                    v-model="parameters.simSize"
-                    :items="[8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]"
-                    label="Simulation Size"
-                    hint="Resolution of the simulation grid (affects performance)"
-                    persistent-hint
-                    variant="outlined"
-                    @update:model-value="updateSystemParameter('simSize', $event)"
-                  ></v-select>
-
-                  <parameter-control
-                    v-model="parameters.particleDensity"
-                    title="Particle Density"
-                    description="Number of particles per simulation cell"
-                    :min="0.1"
-                    :max="10"
-                    :step="0.1"
-                    @update:model-value="updateSystemParameter('particleDensity', $event)"
-                  />
-
-                  <parameter-control
-                    v-model="parameters.drawPointsize"
-                    title="Draw Point Size"
-                    description="Size of individual particle points when rendered"
-                    :min="0.5"
-                    :max="5"
-                    :step="0.1"
-                    @update:model-value="updateSystemParameter('drawPointsize', $event)"
-                  />
-
-                  <v-row>
-                    <v-col cols="12">
-                      <v-switch
-                        v-model="parameters.displayParticles"
-                        label="Display Particles"
-                        color="primary"
-                        hide-details
-                        @update:model-value="updateSystemParameter('displayParticles', $event)"
-                      ></v-switch>
-                      <div class="text-caption text-medium-emphasis">
-                        Show or hide individual particle rendering
-                      </div>
-                    </v-col>
-                  </v-row>
-
-                  <parameter-control
-                    v-model="parameters.canvasZoom"
-                    title="Canvas Zoom"
-                    description="Zoom level of the display canvas"
-                    :min="0.1"
-                    :max="3"
-                    :step="0.1"
-                    @update:model-value="updateSystemParameter('canvasZoom', $event)"
-                  />
-
-                  <parameter-control
-                    v-model="parameters.convergenceRate"
-                    title="Convergence Rate"
-                    description="Speed of parameter transitions and smoothing"
-                    :min="0.01"
-                    :max="1"
-                    :step="0.01"
-                    @update:model-value="updateSystemParameter('convergenceRate', $event)"
-                  />
-
-                  <v-row>
-                    <v-col cols="12">
-                      <v-switch
-                        v-model="parameters.smartLerp"
-                        label="Smart Lerp"
-                        color="primary"
-                        hide-details
-                        @update:model-value="updateSystemParameter('smartLerp', $event)"
-                      ></v-switch>
-                      <div class="text-caption text-medium-emphasis">
-                        Enable intelligent parameter interpolation
-                      </div>
-                    </v-col>
-                  </v-row>
-                </v-card-text>
-              </v-card>
             </v-tabs-window-item>
 
           </v-tabs-window>

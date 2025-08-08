@@ -1435,7 +1435,7 @@ void main() {
     this.gl.useProgram(this.renderParticles);
     this.gl.uniform1fv(this.gl.getUniformLocation(this.renderParticles, "v"), this.lerpParams);
     this.gl.uniform1i(this.getUniformLocation(this.renderParticles, "deposit"), 1);
-    this.gl.uniform1f(this.getUniformLocation(this.renderParticles, "pointsize"), 1);
+    this.gl.uniform1f(this.getUniformLocation(this.renderParticles, "pointsize"), this.drawPointsize);
     this.gl.uniform1f(this.getUniformLocation(this.renderParticles, "dotSize"), this.lerpParams[19]);
 
     // Bind the OTHER texture to avoid feedback loop (we're writing to textures[0], so read from textures[1])

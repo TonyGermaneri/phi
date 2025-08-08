@@ -1,5 +1,5 @@
 <template>
-  <hr class="mt-2" color="#333"/>
+  <v-divider class="my-4"></v-divider>
   <v-slider
     :model-value="modelValue"
     :min="min"
