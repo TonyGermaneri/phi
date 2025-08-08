@@ -527,13 +527,33 @@
                 @update:model-value="updateParameter(25, $event)"
               />
 
+              <parameter-control
+                v-model="parameters.contrastBase"
+                title="Contrast Base"
+                description="Base contrast value for color generation (0-2, 1=normal contrast)"
+                :min="0"
+                :max="2"
+                :step="0.01"
+                @update:model-value="updateParameter(26, $event)"
+              />
+
+              <parameter-control
+                v-model="parameters.contrastMultiplier"
+                title="Contrast Multiplier"
+                description="How much trail intensity affects contrast. Higher values create more contrast in active areas"
+                :min="0"
+                :max="2"
+                :step="0.01"
+                @update:model-value="updateParameter(27, $event)"
+              />
+
               <v-card variant="tonal" class="mt-4">
                 <v-card-text>
                   <p class="text-body-2">
                     <strong>Color Evolution:</strong> Colors evolve organically based on trail intensity.
                   </p>
                   <p class="text-caption mt-2">
-                    The color system uses HSL (Hue, Saturation, Lightness) with dynamic hue, saturation, and lightness
+                    The color system uses HSL (Hue, Saturation, Lightness) with dynamic hue, saturation, lightness, and contrast
                     that respond to the same trail intensities that drive particle behavior, creating
                     colors that naturally follow the organic patterns of the simulation.
                   </p>
@@ -897,6 +917,8 @@ export default defineComponent({
       saturationMultiplier: 0,
       lightnessBase: 0,
       lightnessMultiplier: 0,
+      contrastBase: 0,
+      contrastMultiplier: 0,
       // System parameters
       renderSize: 1080,
       simSize: 512,
@@ -973,6 +995,8 @@ export default defineComponent({
       parameters.value.saturationMultiplier = currentParams[23];
       parameters.value.lightnessBase = currentParams[24];
       parameters.value.lightnessMultiplier = currentParams[25];
+      parameters.value.contrastBase = currentParams[26];
+      parameters.value.contrastMultiplier = currentParams[27];
 
       // Update system parameters
       if (parameterInterface.systemParams) {
