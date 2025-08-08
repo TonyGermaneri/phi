@@ -24,7 +24,7 @@ registerPlugins(app)
 app.mount('#app')
 
 // Particle system configuration
-const DEFAULT_POINT_INDEX = Math.ceil(Math.random() * 36);
+const DEFAULT_POINT_INDEX = 6;
 // Particle system parameter definitions
 // Each line represents a different visual pattern/configuration
 // Format: [26 parameters per line] followed by // pattern_name
@@ -1947,8 +1947,6 @@ document.addEventListener("pointermove", () => {
   systemParams.mouse.y = systemParams.mouse.y - Math.floor(systemParams.mouse.y);
 });
 
-
-document.onmousestart = switchToRandomPreset;
 
 /**
  * Main animation loop
