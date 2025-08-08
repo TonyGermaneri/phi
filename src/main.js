@@ -867,6 +867,10 @@ class ParticleSystem {
     this.mousePositions = new Float32Array(mousePositionCount);
     this.mousePositions.fill(-1);
 
+    // Initialize mouse buttons and strength
+    this.mouseButton = 0;
+    this.mouseStrength = 1.0;
+
     // Enable required WebGL extensions
     this.gl.getExtension("EXT_color_buffer_float");
     this.gl.getExtension("OES_texture_float_linear");
@@ -910,6 +914,8 @@ uniform int pen;
 uniform float[26] v;
 uniform float[8] mps;
 uniform int frame;
+uniform int mouseButton;
+//uniform float mouseStrength;
 
 vec2 bd(vec2 pos) {
   pos *= .5;
@@ -956,8 +962,8 @@ void main() {
   else if (l>r) h+=ra;
   vec2 nd=vec2(cos(h), sin(h));
   vec2 op=i_P+nd*md;
-  const float segmentPop=0.0005;
-  if (pen==1&&i_A<segmentPop){
+  const float segmentPop = 0.005;
+  if (i_A < segmentPop && mouseButton == 1){
     op=2.*cr(i_A/segmentPop)-vec2(1.);
     op+= nd*pow(gn(i_P*132.43,i_T), 1.8);
   }
@@ -1340,7 +1346,8 @@ void main() {
     for (let i = 7; i >= 2; --i) {
       this.mousePositions[i] = this.mousePositions[i - 2];
     }
-
+    this.gl.uniform1i(this.gl.getUniformLocation(this.updateParticles, "mouseButton"), this.mouseButton);
+    this.gl.uniform1f(this.gl.getUniformLocation(this.updateParticles, "mouseStrength"), this.mouseStrength);
     this.gl.uniform1fv(this.gl.getUniformLocation(this.updateParticles, "mps"), this.mousePositions);
     this.gl.uniform1i(this.gl.getUniformLocation(this.updateParticles, "frame"), this.frame);
     this.gl.uniform1i(this.gl.getUniformLocation(this.updateParticles, "pen"), 0 | (easterEggActive || isInterpolating));
@@ -1725,7 +1732,7 @@ function resizeCanvas() {
   } else {
     systemParams.canvasZoom = Math.max(
       window.innerHeight / systemParams.renderSize,
-      0.5 * window.innerWidth / systemParams.renderSize
+      window.innerWidth / systemParams.renderSize
     );
   }
 
@@ -1878,7 +1885,7 @@ function handleKeyPress(keyCode) {
       break;
     case "R":
       // Reset system
-      particleSystem = new ParticleSystem(gl, systemParams);
+      window.particleSystem = new ParticleSystem(gl, systemParams);
       console.log("Reset");
       break;
     case "L":
@@ -1927,25 +1934,41 @@ function handleKeyPress(keyCode) {
 // Event listeners
 window.addEventListener("resize", resizeCanvas);
 
-document.body.addEventListener("keypress", (event) => {
+document.body.addEventListener("keypress", (e) => {
   inactivityCounter = 0;
-  handleKeyPress((event || window.event).keyCode || event.which);
+  handleKeyPress(e.keyCode);
 });
 
 // Initialize particle system
-let particleSystem = new ParticleSystem(gl, systemParams);
+window.particleSystem = new ParticleSystem(gl, systemParams);
 let inactivityCounter = 0;
 
-// Mouse/touch event handlers
-document.addEventListener("pointermove", () => {
-  event.preventDefault();
+
+const mouseTouchMove = (e) => {
   const rect = canvas.getBoundingClientRect();
 
-  systemParams.mouse.x = (event.clientX - rect.x) / systemParams.canvasZoom * 2 / canvas.width;
-  systemParams.mouse.y = (event.clientY - rect.y) / systemParams.canvasZoom / canvas.height;
-  systemParams.mouse.x = systemParams.mouse.x - Math.floor(systemParams.mouse.x);
-  systemParams.mouse.y = systemParams.mouse.y - Math.floor(systemParams.mouse.y);
-});
+  particleSystem.params.mouse.x = (e.clientX - rect.x) / particleSystem.params.canvasZoom * 2 / canvas.width;
+  particleSystem.params.mouse.y = (e.clientY - rect.y) / particleSystem.params.canvasZoom / canvas.height;
+  particleSystem.params.mouse.x = particleSystem.params.mouse.x - Math.floor(particleSystem.params.mouse.x);
+  particleSystem.params.mouse.y = particleSystem.params.mouse.y - Math.floor(particleSystem.params.mouse.y);
+
+};
+const mousedown = (e) => {
+  if (e.target !== document.getElementById("canvas")) {
+    return;
+  }
+  e.preventDefault();
+  particleSystem.mouseButton = e.button + 1;
+}
+const mouseup = (e) => {
+  particleSystem.mouseButton = 0;
+}
+// Mouse/touch event handlers
+document.addEventListener("pointermove", mouseTouchMove);
+document.addEventListener("mousemove", mouseTouchMove);
+document.addEventListener("mousedown", mousedown);
+document.addEventListener("mouseup", mouseup);
+document.addEventListener("mouseleave", mouseup);
 
 
 /**
