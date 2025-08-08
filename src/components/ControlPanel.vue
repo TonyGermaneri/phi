@@ -648,15 +648,17 @@
                     @update:model-value="updateSystemParameter('renderSize', $event)"
                   />
 
-                  <parameter-control
+                  <hr class="mt-2" color="#333"/>
+
+                  <v-select
                     v-model="parameters.simSize"
-                    title="Simulation Size"
-                    description="Resolution of the simulation grid (affects performance)"
-                    :min="256"
-                    :max="1024"
-                    :step="1"
+                    :items="[8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]"
+                    label="Simulation Size"
+                    hint="Resolution of the simulation grid (affects performance)"
+                    persistent-hint
+                    variant="outlined"
                     @update:model-value="updateSystemParameter('simSize', $event)"
-                  />
+                  ></v-select>
 
                   <parameter-control
                     v-model="parameters.particleDensity"
@@ -994,6 +996,9 @@ export default defineComponent({
     const updateSystemParameter = (paramName, value) => {
       if (parameterInterface && parameterInterface.systemParams) {
         parameterInterface.systemParams[paramName] = value;
+      }
+      if (['renderSize', 'simSize', 'particleDensity', 'canvasZoom'].find(e => e == paramName)) {
+        window.resetSystem();
       }
     };
 

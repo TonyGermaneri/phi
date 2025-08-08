@@ -244,7 +244,6 @@ function createParameterProxy() {
         console.error('Invalid parameters: must be an array of 26 numbers');
       }
     },
-
     // Reset current preset to original values
     reset() {
       const originalIndex = currentPresetIndex;
@@ -1700,7 +1699,7 @@ function saveCanvas() {
 }
 // System parameters object
 const systemParams = {
-  simSize: 2048,
+  simSize: 512,
   renderSize: 1080,
   mouse: { x: 450, y: 450 },
   particleDensity: 2.7,
@@ -1737,7 +1736,7 @@ function resizeCanvas() {
   } else {
     systemParams.canvasZoom = Math.max(
       window.innerHeight / systemParams.renderSize,
-      window.innerWidth / systemParams.renderSize
+      0.5 * window.innerWidth / systemParams.renderSize
     );
   }
 
@@ -1890,7 +1889,8 @@ function handleKeyPress(keyCode) {
       break;
     case "R":
       // Reset system
-      window.particleSystem = new ParticleSystem(gl, systemParams);
+      resetSystem();
+
       console.log("Reset");
       break;
     case "L":
@@ -1946,6 +1946,10 @@ document.body.addEventListener("keypress", (e) => {
 
 // Initialize particle system
 window.particleSystem = new ParticleSystem(gl, systemParams);
+// Resets the whole system (some params need this).
+window.resetSystem = () => {
+  window.particleSystem = new ParticleSystem(gl, systemParams);
+};
 let inactivityCounter = 0;
 
 
