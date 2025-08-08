@@ -24,7 +24,7 @@ registerPlugins(app)
 app.mount('#app')
 
 // Particle system configuration
-const DEFAULT_POINT_INDEX = 6;
+const DEFAULT_POINT_INDEX = 8;
 // Particle system parameter definitions
 // Each line represents a different visual pattern/configuration
 // Format: [30 parameters per line] followed by // pattern_name
