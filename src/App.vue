@@ -15,5 +15,13 @@ import ControlPanel from './components/ControlPanel.vue';
 .v-app {
   background: #000;
 }
+html, body {
+    overscroll-behavior: none;
+    height: 100%;
+    overflow: hidden;
+}
 
+* {
+    touch-action: none;
+}
 </style>

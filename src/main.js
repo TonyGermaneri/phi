@@ -1716,20 +1716,6 @@ if (isMobileLayout) {
 // Initialize WebGL context
 const gl = document.getElementById("canvas").getContext("webgl2", { preserveDrawingBuffer: true });
 
-// Drag and drop handlers
-function drop(event) {
-  event.preventDefault();
-  const draggedItem = event.dataTransfer.getData("text");
-  const specialIndices = [1, 3, 5, 10, 18, 23, 24, 27, 28, 29, 32];
-  if (draggedItem === "🥚" && specialIndices.includes(DEFAULT_POINT_INDEX - 1) && DEFAULT_POINT_INDEX - 1 == currentPresetIndex) {
-    easterEggActive = true;
-  }
-}
-
-function allowDrop(event) {
-  event.preventDefault();
-}
-
 /**
  * Resize and position canvas based on window size
  */
@@ -1932,14 +1918,6 @@ function handleKeyPress(keyCode) {
       console.log("Convergence speed: " + systemParams.convergenceRate);
       break;
     default:
-      // Easter egg key transformations after sufficient frames
-      if (frameCounter > 1000) {
-        if (keyCode === 109 && Math.random() > 0.95) keyCode = 86;
-        else if (keyCode === 104 && Math.random() > 0.95) keyCode = 67;
-        else if (keyCode === 110 && Math.random() > 0.99) keyCode = 90;
-        else if (keyCode === 97 && currentPresetIndex == 20) keyCode = 78;
-      }
-
       // Switch to preset based on key
       const presetIndex = keyCodeMapping.indexOf(keyCode);
       switchToPreset(presetIndex);
@@ -1969,14 +1947,6 @@ document.addEventListener("pointermove", () => {
   systemParams.mouse.y = systemParams.mouse.y - Math.floor(systemParams.mouse.y);
 });
 
-document.ontouchstart = function () {
-  switchToRandomPreset();
-  easterEggActive = true;
-};
-
-document.ontouchend = function () {
-  easterEggActive = false;
-};
 
 document.onmousestart = switchToRandomPreset;
 
@@ -1986,14 +1956,6 @@ document.onmousestart = switchToRandomPreset;
 function animate() {
   inactivityCounter++;
   frameCounter++;
-
-  // Auto-return to default after 5 minutes of inactivity
-  if (inactivityCounter > 18000 && currentPresetIndex != DEFAULT_POINT_INDEX - 1) {
-    console.log("Slow mode (~5 minutes of inactivity)... returning to original edition.");
-    systemParams.convergenceRate = 0.00001;
-    switchToPreset(DEFAULT_POINT_INDEX - 1);
-    inactivityCounter = 0;
-  }
 
   if (systemParams.update) {
     particleSystem.draw();
