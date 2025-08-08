@@ -433,6 +433,11 @@ function createParameterProxy() {
         24: lightnessBase,
         25: lightnessMultiplier
       });
+    },
+
+    // Expose systemParams for system-level controls
+    get systemParams() {
+      return systemParams;
     }
   };
 
@@ -1695,7 +1700,7 @@ function saveCanvas() {
 }
 // System parameters object
 const systemParams = {
-  simSize: 512,
+  simSize: 2048,
   renderSize: 1080,
   mouse: { x: 450, y: 450 },
   particleDensity: 2.7,

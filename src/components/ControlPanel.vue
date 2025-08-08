@@ -624,6 +624,111 @@
                   </v-row>
                 </v-card-text>
               </v-card>
+
+              <v-divider class="my-4"></v-divider>
+
+              <v-card variant="outlined">
+                <v-card-title>System Parameters</v-card-title>
+                <v-card-text>
+                  <v-row>
+                    <v-col cols="12">
+                      <p class="text-body-2 mb-4">
+                        Core system settings that affect rendering and simulation performance.
+                      </p>
+                    </v-col>
+                  </v-row>
+
+                  <parameter-control
+                    v-model="parameters.renderSize"
+                    title="Render Size"
+                    description="Resolution of the output canvas (pixels)"
+                    :min="512"
+                    :max="2048"
+                    :step="1"
+                    @update:model-value="updateSystemParameter('renderSize', $event)"
+                  />
+
+                  <parameter-control
+                    v-model="parameters.simSize"
+                    title="Simulation Size"
+                    description="Resolution of the simulation grid (affects performance)"
+                    :min="256"
+                    :max="1024"
+                    :step="1"
+                    @update:model-value="updateSystemParameter('simSize', $event)"
+                  />
+
+                  <parameter-control
+                    v-model="parameters.particleDensity"
+                    title="Particle Density"
+                    description="Number of particles per simulation cell"
+                    :min="0.1"
+                    :max="10"
+                    :step="0.1"
+                    @update:model-value="updateSystemParameter('particleDensity', $event)"
+                  />
+
+                  <parameter-control
+                    v-model="parameters.drawPointsize"
+                    title="Draw Point Size"
+                    description="Size of individual particle points when rendered"
+                    :min="0.5"
+                    :max="5"
+                    :step="0.1"
+                    @update:model-value="updateSystemParameter('drawPointsize', $event)"
+                  />
+
+                  <v-row>
+                    <v-col cols="12">
+                      <v-switch
+                        v-model="parameters.displayParticles"
+                        label="Display Particles"
+                        color="primary"
+                        hide-details
+                        @update:model-value="updateSystemParameter('displayParticles', $event)"
+                      ></v-switch>
+                      <div class="text-caption text-medium-emphasis">
+                        Show or hide individual particle rendering
+                      </div>
+                    </v-col>
+                  </v-row>
+
+                  <parameter-control
+                    v-model="parameters.canvasZoom"
+                    title="Canvas Zoom"
+                    description="Zoom level of the display canvas"
+                    :min="0.1"
+                    :max="3"
+                    :step="0.1"
+                    @update:model-value="updateSystemParameter('canvasZoom', $event)"
+                  />
+
+                  <parameter-control
+                    v-model="parameters.convergenceRate"
+                    title="Convergence Rate"
+                    description="Speed of parameter transitions and smoothing"
+                    :min="0.01"
+                    :max="1"
+                    :step="0.01"
+                    @update:model-value="updateSystemParameter('convergenceRate', $event)"
+                  />
+
+                  <v-row>
+                    <v-col cols="12">
+                      <v-switch
+                        v-model="parameters.smartLerp"
+                        label="Smart Lerp"
+                        color="primary"
+                        hide-details
+                        @update:model-value="updateSystemParameter('smartLerp', $event)"
+                      ></v-switch>
+                      <div class="text-caption text-medium-emphasis">
+                        Enable intelligent parameter interpolation
+                      </div>
+                    </v-col>
+                  </v-row>
+                </v-card-text>
+              </v-card>
             </v-tabs-window-item>
 
           </v-tabs-window>
@@ -789,7 +894,16 @@ export default defineComponent({
       saturationBase: 0,
       saturationMultiplier: 0,
       lightnessBase: 0,
-      lightnessMultiplier: 0
+      lightnessMultiplier: 0,
+      // System parameters
+      renderSize: 1080,
+      simSize: 512,
+      particleDensity: 2.7,
+      drawPointsize: 1,
+      displayParticles: true,
+      canvasZoom: 1,
+      convergenceRate: 0.15,
+      smartLerp: true
     });
 
     // Access to global parameter interface
@@ -857,11 +971,29 @@ export default defineComponent({
       parameters.value.saturationMultiplier = currentParams[23];
       parameters.value.lightnessBase = currentParams[24];
       parameters.value.lightnessMultiplier = currentParams[25];
+
+      // Update system parameters
+      if (parameterInterface.systemParams) {
+        parameters.value.renderSize = parameterInterface.systemParams.renderSize;
+        parameters.value.simSize = parameterInterface.systemParams.simSize;
+        parameters.value.particleDensity = parameterInterface.systemParams.particleDensity;
+        parameters.value.drawPointsize = parameterInterface.systemParams.drawPointsize;
+        parameters.value.displayParticles = parameterInterface.systemParams.displayParticles;
+        parameters.value.canvasZoom = parameterInterface.systemParams.canvasZoom;
+        parameters.value.convergenceRate = parameterInterface.systemParams.convergenceRate;
+        parameters.value.smartLerp = parameterInterface.systemParams.smartLerp;
+      }
     };
 
     const updateParameter = (index, value) => {
       if (parameterInterface) {
         parameterInterface.setParam(index, value, true);
+      }
+    };
+
+    const updateSystemParameter = (paramName, value) => {
+      if (parameterInterface && parameterInterface.systemParams) {
+        parameterInterface.systemParams[paramName] = value;
       }
     };
 
@@ -1191,6 +1323,7 @@ export default defineComponent({
       startHideTimer,
       toggleControlPanel,
       updateParameter,
+      updateSystemParameter,
       switchPreset,
       resetCurrentPreset,
       resetAllDefaults,
