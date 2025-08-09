@@ -19,7 +19,6 @@ html, body {
     height: 100%;
     overflow: hidden;
 }
-
 * {
     touch-action: none;
 }
@@ -29,7 +28,6 @@ html, body {
   height: 100vh;
   overflow: hidden;
 }
-
 canvas {
   position: absolute;
   top: 0;
