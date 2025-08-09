@@ -78,7 +78,7 @@ class PresetDatabase {
         title: presetNames[i] || `Preset ${i + 1}`,
         description: `Default preset ${i + 1}`,
         parameters: [...presets[i]], // Deep copy
-        originalParameters: originalParameterLines ? [...originalParameterLines[i].slice(0, 26)] : [...presets[i]], // Store original for reset
+        originalParameters: originalParameterLines ? [...originalParameterLines[i].slice(0, 32)] : [...presets[i]], // Store original for reset
         isDefault: true,
         created: new Date().toISOString(),
         modified: new Date().toISOString()
@@ -311,8 +311,8 @@ class PresetDatabase {
       throw new Error('Invalid preset format: missing title or parameters');
     }
 
-    if (data.parameters.length !== 26) {
-      throw new Error('Invalid preset format: must have exactly 26 parameters');
+    if (data.parameters.length !== 32) {
+      throw new Error('Invalid preset format: must have exactly 32 parameters');
     }
 
     // Check if preset with same ID already exists

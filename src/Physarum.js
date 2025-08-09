@@ -99,6 +99,36 @@ export default class Physarum {
     this.lerpTime = 0;
     this.params.currentParams = this.parameterSets[this.currentPresetIndex];
   }
+
+  updateParameter(index, value) {
+    if (this.params.currentParams && index >= 0 && index < this.params.currentParams.length) {
+      this.params.currentParams[index] = value;
+    }
+  }
+
+  updateSystemParameter(name, value) {
+    if (this.params.hasOwnProperty(name)) {
+      this.params[name] = value;
+
+      // Handle special cases that need immediate updates
+      if (name === 'canvasZoom') {
+        this.updateCanvasZoom();
+      } else if (name === 'simSize' || name === 'renderSize') {
+        this.resizeCanvas();
+      }
+    }
+  }
+
+  updateCanvasZoom() {
+    if (this.canvas) {
+      this.canvas.style.transform = `scale(${this.params.canvasZoom})`;
+    }
+  }
+
+  getCurrentParameters() {
+    return Array.from(this.params.currentParams || []);
+  }
+
   compileShader(type, source) {
     const shader = this.gl.createShader(type);
     this.gl.shaderSource(shader, source);

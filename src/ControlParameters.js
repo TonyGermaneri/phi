@@ -298,7 +298,25 @@ const controls = [
     step: 0.03,
     group: 'color',
     index: 29
-  }
+  },
+  {
+    name: 'drawPointsize',
+    title: 'Draw Point Size',
+    description: 'Size of individual particle points when rendered',
+    min: 0.01,
+    max: 5.00,
+    step: 0.01,
+    group: 'visual',
+    index: 30
+  },
+  {
+    name: 'invert',
+    title: 'Invert',
+    description: 'Size of individual particle points when rendered',
+    group: 'visual',
+    inputType: 'switch',
+    index: 31
+  },
 ];
 
 // Add system parameters
@@ -330,16 +348,6 @@ const system = [
     description: 'Number of particles per simulation cell',
     min: 0.1,
     max: 10,
-    step: 0.1,
-    group: 'advanced',
-    type: 'system'
-  },
-  {
-    name: 'drawPointsize',
-    title: 'Draw Point Size',
-    description: 'Size of individual particle points when rendered',
-    min: 0.5,
-    max: 5,
     step: 0.1,
     group: 'advanced',
     type: 'system'
