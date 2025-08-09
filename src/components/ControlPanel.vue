@@ -779,6 +779,8 @@ import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue';
 import ParameterControl from './ParameterControl.vue';
 import presetDatabase from '../services/presetDatabase.js';
 
+import Physarum from '../Physarum.js'
+
 export default defineComponent({
   name: 'ControlPanel',
   components: {
@@ -888,6 +890,63 @@ export default defineComponent({
       if (!parameterInterface) return '';
       return parameterInterface.presetName.replace(/_/g, ' ');
     });
+
+
+    // Add preset management utilities
+    const presets = {
+      // Reset all default presets to their original values
+      async resetDefaults() {
+        try {
+          // Import preset database (if using module system, this would be handled differently)
+          if (window.presetDatabase) {
+            const resetCount = await window.presetDatabase.resetDefaultPresets();
+            const updatedDefaults = await window.presetDatabase.getCurrentDefaultPresets();
+
+            // Update the main parameter sets with reset values
+            for (let i = 0; i < Math.min(updatedDefaults.length, parameterSets.length); i++) {
+              parameterSets[i] = new Float32Array(updatedDefaults[i]);
+            }
+
+            // If currently on a default preset, refresh it
+            if (currentPresetIndex >= 0 && currentPresetIndex < parameterSets.length) {
+              phi.switchPreset(currentPresetIndex);
+            }
+
+            console.log(`Reset ${resetCount} default presets to original values`);
+            return { success: true, count: resetCount };
+          } else {
+            console.warn('Preset database not available');
+            return { success: false, error: 'Preset database not available' };
+          }
+        } catch (error) {
+          console.error('Failed to reset default presets:', error);
+          return { success: false, error: error.message };
+        }
+      },
+
+      // Initialize preset database with current defaults
+      async initializeDatabase() {
+        try {
+          if (window.presetDatabase) {
+            await window.presetDatabase.saveDefaultPresets(
+              parameterSets.map(params => [...params]), // Convert to regular arrays
+              phi.presetNames,
+              parameterLines // Pass original parameter lines for reset functionality
+            );
+            console.log('Preset database initialized with default presets');
+            return { success: true };
+          } else {
+            console.warn('Preset database not available');
+            return { success: false, error: 'Preset database not available' };
+          }
+        } catch (error) {
+          console.error('Failed to initialize preset database:', error);
+          return { success: false, error: error.message };
+        }
+      }
+    };
+
+
 
     // Methods
     const showHeader = () => {
@@ -1025,7 +1084,12 @@ export default defineComponent({
     const loadUserPresets = async () => {
       try {
         const presets = await presetDatabase.getUserPresets();
-        userPresets.value = presets.sort((a, b) => new Date(b.created) - new Date(a.created));
+        userPresets.value = presets.map((a) => {
+          while (a.parameters && a.parameters.length < 30) {
+            a.parameters.push(0); // Ensure all presets have full parameter arrays
+          }
+          return a;
+        }).sort((a, b) => new Date(b.created) - new Date(a.created));
       } catch (error) {
         console.error('Failed to load user presets:', error);
       }
@@ -1102,6 +1166,15 @@ export default defineComponent({
       }
     };
 
+    // Keyboard key codes for preset switching (numbers, QWERTY layout, etc.)
+    let keyCodeMapping = [
+      49, 50, 51, 52, 53, 54, 55, 56, 57, 48,  // 1-9, 0
+      113, 119, 101, 114, 116, 121, 117, 105, 111, 112,  // qwertyuiop
+      97, 115, 100, 102, 103, 104, 106, 107, 108,  // asdfghjkl
+      122, 120, 99, 118, 98, 110, 109,  // zxcvbnm
+      90, 88, 67, 86, 66, 78, 77  // ZXCVBNM
+    ];
+
     const editUserPreset = (preset) => {
       editingPreset.value = preset;
       presetForm.value.title = preset.title;
@@ -1150,6 +1223,31 @@ export default defineComponent({
         description: ''
       };
     };
+    let isFullscreen = false;
+
+    /**
+     * Toggle fullscreen mode
+     */
+    function toggleFullscreen() {
+      if (isFullscreen) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      } else {
+        if (document.body.requestFullscreen) {
+          document.body.requestFullscreen();
+        } else if (document.body.webkitRequestFullscreen) {
+          document.body.webkitRequestFullscreen();
+        } else if (document.body.msRequestFullscreen) {
+          document.body.msRequestFullscreen();
+        }
+      }
+      isFullscreen = !isFullscreen;
+    }
 
     // File import handling
     const handleFileDrop = async (event) => {
@@ -1212,6 +1310,24 @@ export default defineComponent({
         console.error('Failed to initialize preset database:', error);
       }
 
+
+      window.physarum = new Physarum(document.getElementById("canvas"));
+      window.addEventListener("resize", physarum.resizeCanvas.bind(physarum));
+      document.addEventListener("pointermove", physarum.mouseTouchMove.bind(physarum));
+      document.addEventListener("mousemove", physarum.mouseTouchMove.bind(physarum));
+      document.addEventListener("mousedown", physarum.mousedown.bind(physarum));
+      document.addEventListener("mouseup", physarum.mouseup.bind(physarum));
+      document.addEventListener("mouseleave", physarum.mouseup.bind(physarum));
+
+      function animate() {
+        if (physarum.params.update) {
+          physarum.draw();
+        }
+        requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
+
+
       // Wait for global parameter interface to be available
       const checkInterface = () => {
         if (window.createParameterProxy) {
@@ -1256,11 +1372,76 @@ export default defineComponent({
         showHeader();
         startHideTimer();
       });
+
+      function handleKeyPress(e) {
+
+        const character = String.fromCharCode(e.keyCode);
+
+        switch (character) {
+          case "\\":
+            // Freeze current parameters
+            parameterInterface.systemParams.params = particleSystem.lerpParams;
+            parameterInterface.systemParams.lerpTime = 1;
+            console.log("Frozen!");
+            break;
+          case "U":
+            // Toggle update
+            parameterInterface.systemParams.update = !parameterInterface.systemParams.update;
+            break;
+          case "R":
+            // Reset system
+            parameterInterface.reset();
+
+            break;
+          case "L":
+            // Log current parameters
+            console.log("Current parameters: " + particleSystem.lerpParams);
+            break;
+          case " ":
+            // Toggle fullscreen
+            toggleFullscreen();
+            console.log("Toggle fullscreen");
+            break;
+          case "~":
+            // Random interpolation
+            if (window.createParameterProxy) {
+              const paramInterface = window.createParameterProxy();
+              paramInterface.randomize(0.5);
+              console.log("Parameters randomized");
+            } else {
+              // Fallback to old method
+              interpolateBetweenPresets(
+                Math.floor(Math.random() * keyCodeMapping.length),
+                Math.floor(Math.random() * keyCodeMapping.length),
+                parseFloat(Math.random().toFixed(3)),
+                true,
+                false
+              );
+            }
+            break;
+          case "+":
+            // Increase convergence rate
+            parameterInterface.systemParams.convergenceRate = Math.max(1e-15, 0.5 * parameterInterface.systemParams.convergenceRate);
+            console.log("Convergence speed: " + parameterInterface.systemParams.convergenceRate);
+            break;
+          case "-":
+            // Decrease convergence rate
+            parameterInterface.systemParams.convergenceRate = Math.min(1, 2 * parameterInterface.systemParams.convergenceRate);
+            console.log("Convergence speed: " + parameterInterface.systemParams.convergenceRate);
+            break;
+        }
+      }
+
+      document.body.addEventListener("keypress", handleKeyPress);
+
+
+
       // Start auto-hide timer
       startHideTimer();
     });
 
     onUnmounted(() => {
+      document.body.removeEventListener("keypress", handleKeyPress);
       clearTimeout(hideTimer.value);
       if (updateTimer) {
         clearTimeout(updateTimer);
