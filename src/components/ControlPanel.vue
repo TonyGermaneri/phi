@@ -1,7 +1,8 @@
 <template>
-  <div v-if="!drawer" class="control-icons">
-    <v-icon @click="toggleDrawer" :class="drawerIconClass">mdi-cog</v-icon>
-    <v-icon @click="randomizeAllParameters" :class="[drawerIconClass, 'randomize-icon']" title="Randomize all parameters - (Shortcut: r)">mdi-dice-multiple</v-icon>
+  <div v-if="!drawer" :class="['control-icons', drawerIconClass]">
+    <v-icon @click="toggleDrawer" class="cog-icon">mdi-cog</v-icon>
+    <v-icon @click="randomizeAllParameters" class="randomize-icon" title="Randomize all parameters - (Shortcut: r)">mdi-dice-multiple</v-icon>
+    <v-icon @click="showHelpDialog = !showHelpDialog" class="help-icon" title="Help - (Shortcut: ?)">mdi-help-box-outline</v-icon>
   </div>
 
   <!-- Snackbar for keyboard action feedback -->
@@ -26,7 +27,7 @@
   <v-dialog v-model="showHelpDialog" max-width="600px" class="help-dialog">
     <v-card class="help-dialog" style="background: transparent;">
       <v-card-title class="d-flex align-center">
-        <v-icon class="mr-3">mdi-help-circle</v-icon>
+        <v-icon class="mr-3">mdi-help-box-outline</v-icon>
         Keyboard Shortcuts
       </v-card-title>
       <v-card-text>
@@ -46,11 +47,99 @@
         </v-list>
       </v-card-text>
       <v-card-actions>
+        <v-btn @click="showAboutDialog = true; showHelpDialog = false">About</v-btn>
         <v-spacer></v-spacer>
         <v-btn @click="showHelpDialog = false">Close</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- About Dialog -->
+  <v-dialog v-model="showAboutDialog" max-width="700px" class="about-dialog">
+    <v-card class="about-dialog" style="background: transparent;">
+      <v-card-title class="d-flex align-center">
+        <v-icon class="mr-3">mdi-information-outline</v-icon>
+        About Physarum
+      </v-card-title>
+      <v-card-text>
+        <div class="about-content">
+          <p class="mb-4">
+            <a href="https://tonygermaneri.github.io/phi/" target="_blank" rel="noopener">
+              https://tonygermaneri.github.io/phi/
+            </a>
+          </p>
+
+          <v-divider class="my-4"></v-divider>
+
+          <h3 class="text-h5 mb-3">Attributions</h3>
+
+          <div class="mb-4">
+            <p class="mb-2">
+              <a href="https://uwe-repository.worktribe.com/output/980579/characteristics-of-pattern-formation-and-evolution-in-approximations-of-physarum-transport-networks"
+                 target="_blank"
+                 rel="noopener">
+                Based on research by Jeff Jones
+              </a>
+            </p>
+          </div>
+
+          <div class="mb-4">
+            <p class="mb-2">Parts of the code contained herein are based on:</p>
+            <p class="mb-2">
+              <a href="https://www.sagejenson.com/36points" target="_blank" rel="noopener">
+                36 Points
+              </a> (2019-2022) By Sage Jenson
+            </p>
+            <p class="text-caption mb-2">
+              Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
+            </p>
+            <p>
+              <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/legalcode"
+                 target="_blank"
+                 rel="noopener">
+                Full license
+              </a>
+            </p>
+          </div>
+
+          <v-divider class="my-4"></v-divider>
+
+          <div class="mb-4">
+            <h4 class="text-h6 mb-2">Features</h4>
+            <ul class="pl-4">
+              <li>HLSA simulation</li>
+              <li>Heavily Modified Physarum Algorithm</li>
+              <li>JS Proxy Interface</li>
+              <li>Vue 3 Framework Wrapper</li>
+              <li>Interactive Vuetify MD Control Panel</li>
+            </ul>
+          </div>
+
+          <v-divider class="my-4"></v-divider>
+
+          <div class="text-center">
+            <p class="mb-2">&copy; 2025 by Tony Germaneri</p>
+            <p class="text-caption mb-2">
+              Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
+            </p>
+            <p>
+              <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/legalcode"
+                 target="_blank"
+                 rel="noopener">
+                Full license
+              </a>
+            </p>
+          </div>
+        </div>
+      </v-card-text>
+      <v-card-actions>
+        <v-btn @click="showHelpDialog = true; showAboutDialog = false">Back to Help</v-btn>
+        <v-spacer></v-spacer>
+        <v-btn @click="showAboutDialog = false">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <v-navigation-drawer v-if="drawer" class="w-33">
     <v-icon class="float-right mr-2 mt-2" @click="toggleDrawer">mdi-chevron-double-left</v-icon>
     <h4 class="mx-4 mt-2">Physarum -
@@ -59,15 +148,14 @@
     <div v-if="currentPreset" class="ml-4 text-caption text-medium-emphasis d-inline-block">
       {{ currentPreset.description }}
     </div>
-    <v-icon @click="randomizeAllParameters" :class="['randomize-icon']" title="Randomize all parameters - (Shortcut: r)">mdi-dice-multiple</v-icon>
-
-
+    <v-icon @click="showHelpDialog = !showHelpDialog" :class="['help-icon', 'float-right', 'mr-3']" title="Help - (Shortcut: ?)">mdi-help-box-outline</v-icon>
+    <v-icon @click="randomizeAllParameters" :class="['randomize-icon', 'float-right', 'mr-3']" title="Randomize all parameters - (Shortcut: r)">mdi-dice-multiple</v-icon>
     <v-tabs v-model="tabs">
       <v-tab v-for="tab in allTabs" :key="tab">{{ tab }}</v-tab>
     </v-tabs>
     <v-tabs-window v-model="tabs" class="mx-4">
       <!-- Presets tab -->
-      <v-tabs-window-item key="Presets">
+      <v-tabs-window-item key="presets">
         <div class="mt-4">
           <v-btn
             color="primary"
@@ -357,6 +445,7 @@
           @update:model-value="updateParameter(control, $event)"
         />
       </v-tabs-window-item>
+
     </v-tabs-window>
   </v-navigation-drawer>
 
@@ -412,6 +501,7 @@ export default {
       dragCounter: 0,
       // Keyboard shortcuts related data
       showHelpDialog: false,
+      showAboutDialog: false,
       showSnackbar: false,
       snackbarMessage: '',
       originalPresetParameters: {}, // Store original parameters for revert functionality
@@ -438,7 +528,7 @@ export default {
       return [...new Set(this.simControls.map(control => control.group))];
     },
     allTabs() {
-      return ['Presets', ...this.groups];
+      return ['presets', ...this.groups];
     },
     groupControls() {
       return (group) => {
@@ -529,6 +619,9 @@ export default {
           event.preventDefault();
           break;
         case 'r':
+          if (event.shiftKey || event.metaKey || event.ctrlKey) {
+            return;
+          }
           this.randomizeAllParameters();
           this.showMessage('Parameters randomized');
           break;
@@ -683,8 +776,6 @@ export default {
           if (presets.length === 0) {
             await this.createDefaultPresets();
           }
-
-          console.log(`Loaded ${presets.length} presets from database`);
         } catch (error) {
           console.error('Failed to load presets:', error);
         }
@@ -734,8 +825,6 @@ export default {
 
         // Update simulation parameter set
         this.simulation.parameterSets[this.currentPresetIndex] = new Float32Array(currentParams);
-
-        console.log(`Saved preset: ${currentPreset.title}`);
       } catch (error) {
         console.error('Failed to save preset:', error);
       }
@@ -764,7 +853,6 @@ export default {
         this.simulation.setPreset(this.currentPresetIndex);
 
         this.cancelSaveAs();
-        console.log(`Created new preset: ${newPreset.title}`);
       } catch (error) {
         console.error('Failed to create new preset:', error);
       }
@@ -811,8 +899,6 @@ export default {
             this.updateCurrentParameters();
           }
         }
-
-        console.log('Preset deleted successfully');
       } catch (error) {
         console.error('Failed to delete preset:', error);
       }
@@ -834,8 +920,6 @@ export default {
 
         // Add to simulation parameter sets
         this.simulation.addParameterSet(preset.parameters);
-
-        console.log(`Duplicated preset: ${duplicatedTitle}`);
       } catch (error) {
         console.error('Failed to duplicate preset:', error);
       }
@@ -862,8 +946,6 @@ export default {
         } else if (this.currentPresetIndex === currentIndex - 1) {
           this.currentPresetIndex = currentIndex;
         }
-
-        console.log('Preset moved up successfully');
       } catch (error) {
         console.error('Failed to move preset up:', error);
       }
@@ -891,7 +973,6 @@ export default {
           this.currentPresetIndex = currentIndex;
         }
 
-        console.log('Preset moved down successfully');
       } catch (error) {
         console.error('Failed to move preset down:', error);
       }
@@ -929,7 +1010,6 @@ export default {
         preset[this.editingField] = newValue;
         preset.modified = new Date().toISOString();
 
-        console.log(`Updated preset ${this.editingField}: ${preset.title}`);
       } catch (error) {
         console.error(`Failed to update preset ${this.editingField}:`, error);
       }
@@ -1014,7 +1094,6 @@ export default {
       this.updateCurrentParameters();
 
       this.showMessage(`Imported preset: ${newPreset.title}`);
-      console.log(`Imported preset: ${newPreset.title}`);
     },
     cancelImportConflict() {
       this.showImportConflictDialog = false;
@@ -1173,7 +1252,7 @@ export default {
   transition: transform 0.3s ease-in-out;
   backdrop-filter: blur(8px);
 }
-.help-dialog div, .delete-dialog div, .save-as div, .import-conflict-dialog div {
+.help-dialog div, .about-dialog div, .delete-dialog div, .save-as div, .import-conflict-dialog div {
   color: #ccc !important;
 }
 
@@ -1293,16 +1372,25 @@ export default {
   padding: 16px;
 }
 .drawer-icon-hidden {
-  opacity: 0;
+  opacity: 0.0;
+  left: -30px;
+  transition: all 0.25s;
 }
 .control-icons {
   position: absolute;
   top: 20px;
-  left: 20px;
+  left: 0;
+  padding: 5px 10px 5px 13px;
   z-index: 2000;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid rgba(98, 0, 238, 0.5);
+  border-left-style: none;
+  border-radius: 4px;
+  transition: all 0.25s;
 }
 .drawer-icon {
   transition: all 0.25s;
@@ -1312,13 +1400,14 @@ export default {
   opacity: 1;
   transition: all 0.25s;
 }
-.randomize-icon {
+.help-icon, .randomize-icon, .cog-icon {
   font-size: 1.2em;
 }
-.randomize-icon:hover {
+.help-icon:hover, .randomize-icon:hover, .cog-icon:hover {
   color: #ff6b35 !important;
   transform: rotate(15deg);
 }
+
 
 /* Keyboard shortcuts styles */
 .help-dialog .v-card {
@@ -1359,6 +1448,34 @@ export default {
   font-size: 0.8em;
 }
 
+/* About Dialog */
+.about-dialog .v-card {
+  background: rgba(0, 0, 0, 0.9) !important;
+}
+
+.about-content {
+  color: #ccc !important;
+}
+
+.about-content a {
+  color: #6200ee !important;
+  text-decoration: none;
+}
+
+.about-content a:hover {
+  color: #bb86fc !important;
+  text-decoration: underline;
+}
+
+.about-content h3,
+.about-content h4 {
+  color: #fff !important;
+}
+
+.about-content ul {
+  color: #ccc !important;
+}
+
 /* Drag and Drop Overlay */
 .drag-overlay {
   position: fixed;
@@ -1382,13 +1499,6 @@ export default {
   border: 2px dashed rgba(255, 255, 255, 0.5);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.1);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 0.7; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
-  100% { opacity: 0.7; transform: scale(1); }
 }
 
 .drag-overlay-content h2 {
