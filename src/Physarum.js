@@ -7,16 +7,15 @@ export default class Physarum {
     this.parameters = [];
     this.parameterCount = 32;
     this.parameterSets = [];
-    // Vertex shader source code (used for rendering)
     this.vertexShaderSource = `#version 300 es
-    in vec4 aVertexPosition;
-    in vec2 aTexCoord;
-    precision highp float;
-    out vec2 vTexCoord;
-    void main() {
-      gl_Position = aVertexPosition;
-      vTexCoord = aTexCoord;
-    }`;
+in vec4 aVertexPosition;
+in vec2 aTexCoord;
+precision highp float;
+out vec2 vTexCoord;
+void main() {
+  gl_Position = aVertexPosition;
+  vTexCoord = aTexCoord;
+}`;
     this.params = {
       simSize: 512,
       renderSize: 1080,
@@ -179,59 +178,90 @@ uniform float[8] mps;
 uniform int frame;
 uniform int mouseButton;
 
-vec2 bd(vec2 pos) {
-  pos *= .5;
-  pos += vec2(.5);
-  pos -= floor(pos);
-  pos -= vec2(.5);
-  pos *= 2.;
-  return pos;
+// Boundary wrapping function - keeps coordinates within [-1, 1] range
+vec2 wrapBoundary(vec2 position) {
+  position *= 0.5;
+  position += vec2(0.5);
+  position -= floor(position);
+  position -= vec2(0.5);
+  position *= 2.0;
+  return position;
 }
 
-float gn(in vec2 coordinate, in float seed){
-  return fract(tan(distance(coordinate*(seed+0.118446744073709551614), vec2(0.118446744073709551614, 0.314159265358979323846264)))*0.141421356237309504880169);
+// Generate noise value for randomization
+float generateNoise(in vec2 coordinate, in float seed) {
+  return fract(tan(distance(coordinate * (seed + 0.118446744073709551614), vec2(0.118446744073709551614, 0.314159265358979323846264))) * 0.141421356237309504880169);
 }
 
-vec2 cr(float t) {
-  vec2 G1 = vec2(mps[0], mps[1]);
-  vec2 G2 = vec2(mps[2], mps[3]);
-  vec2 G3 = vec2(mps[4], mps[5]);
-  vec2 G4 = vec2(mps[6], mps[7]);
-  vec2 A = G1*-0.5+G2*1.5+G3*-1.5+G4*0.5;
-  vec2 B = G1+G2*-2.5+G3*2.+G4*-.5;
-  vec2 C = G1*-0.5+G3*0.5 ;
-  vec2 D = G2;
-  return t*(t*(t*A+B)+C)+D;
+// Cubic interpolation for mouse trail effect
+vec2 cubicInterpolation(float t) {
+  vec2 controlPoint1 = vec2(mps[0], mps[1]);
+  vec2 controlPoint2 = vec2(mps[2], mps[3]);
+  vec2 controlPoint3 = vec2(mps[4], mps[5]);
+  vec2 controlPoint4 = vec2(mps[6], mps[7]);
+  vec2 cubicCoeffA = controlPoint1 * -0.5 + controlPoint2 * 1.5 + controlPoint3 * -1.5 + controlPoint4 * 0.5;
+  vec2 cubicCoeffB = controlPoint1 + controlPoint2 * -2.5 + controlPoint3 * 2.0 + controlPoint4 * -0.5;
+  vec2 cubicCoeffC = controlPoint1 * -0.5 + controlPoint3 * 0.5;
+  vec2 cubicCoeffD = controlPoint2;
+  return t * (t * (t * cubicCoeffA + cubicCoeffB) + cubicCoeffC) + cubicCoeffD;
 }
 
 void main() {
-  vec2 dir = vec2(cos(i_T), sin(i_T));
-  float hd= i_dim.x/2.;
-  vec2 sp=.5*(i_P+ vec2(1.0));
-  float sv= texture(u_trail, bd(sp+v[13]/hd*dir+vec2(0.,v[12]/hd))).x;
-  sv= max(sv, 0.000000001);
-  float sd=v[0]/hd+v[2]*pow(sv,v[1])*250./hd;
-  float md=v[9]/hd+v[11]*pow(sv,v[10])*250./hd;
-  float sa=v[3]+v[5]*pow(sv, v[4]);
-  float ra=v[6]+v[8]*pow(sv, v[7]);
-  float m=texture(u_trail, bd(sp+ sd*vec2(cos(i_T), sin(i_T)))).x;
-  float l=texture(u_trail, bd(sp+ sd*vec2(cos(i_T+sa), sin(i_T+sa)))).x;
-  float r=texture(u_trail, bd(sp+ sd*vec2(cos(i_T-sa), sin(i_T-sa)))).x;
-  float h=i_T;
-  if (m>l&&m>r){}
-  else if (m<l&&m<r){if (gn(i_P*1332.4324,i_T) > 0.5) h+= ra; else h-=ra;}
-  else if (l<r) h-=ra;
-  else if (l>r) h+=ra;
-  vec2 nd=vec2(cos(h), sin(h));
-  vec2 op=i_P+nd*md;
-  const float segmentPop = 0.005;
-  if (i_A < segmentPop && mouseButton == 1){
-    op=2.*cr(i_A/segmentPop)-vec2(1.);
-    op+= nd*pow(gn(i_P*132.43,i_T), 1.2);
+  vec2 currentDirection = vec2(cos(i_T), sin(i_T));
+  float halfDimension = i_dim.x / 2.0;
+  vec2 samplePosition = 0.5 * (i_P + vec2(1.0));
+
+  // Sample trail intensity at current position with sensor offset
+  float sensorValue = texture(u_trail, wrapBoundary(samplePosition + v[13] / halfDimension * currentDirection + vec2(0.0, v[12] / halfDimension))).x;
+  sensorValue = max(sensorValue, 0.000000001);
+
+  // Calculate sensor and movement distances based on trail intensity
+  float sensorDistance = v[0] / halfDimension + v[2] * pow(sensorValue, v[1]) * 250.0 / halfDimension;
+  float movementDistance = v[9] / halfDimension + v[11] * pow(sensorValue, v[10]) * 250.0 / halfDimension;
+
+  // Calculate sensor and rotation angles
+  float sensorAngle = v[3] + v[5] * pow(sensorValue, v[4]);
+  float rotationAngle = v[6] + v[8] * pow(sensorValue, v[7]);
+
+  // Sample trail intensity at three sensor positions (forward, left, right)
+  float forwardSensor = texture(u_trail, wrapBoundary(samplePosition + sensorDistance * vec2(cos(i_T), sin(i_T)))).x;
+  float leftSensor = texture(u_trail, wrapBoundary(samplePosition + sensorDistance * vec2(cos(i_T + sensorAngle), sin(i_T + sensorAngle)))).x;
+  float rightSensor = texture(u_trail, wrapBoundary(samplePosition + sensorDistance * vec2(cos(i_T - sensorAngle), sin(i_T - sensorAngle)))).x;
+
+  // Update heading based on sensor readings
+  float newHeading = i_T;
+  if (forwardSensor > leftSensor && forwardSensor > rightSensor) {
+    // Continue straight if forward sensor has highest value
+  } else if (forwardSensor < leftSensor && forwardSensor < rightSensor) {
+    // Random turn if forward sensor has lowest value
+    if (generateNoise(i_P * 1332.4324, i_T) > 0.5) {
+      newHeading += rotationAngle;
+    } else {
+      newHeading -= rotationAngle;
+    }
+  } else if (leftSensor < rightSensor) {
+    // Turn right if right sensor is stronger
+    newHeading -= rotationAngle;
+  } else if (leftSensor > rightSensor) {
+    // Turn left if left sensor is stronger
+    newHeading += rotationAngle;
   }
-  v_P = bd(op);
-  v_A= fract(i_A+segmentPop);
-  v_T =h;
+
+  // Calculate new direction and position
+  vec2 newDirection = vec2(cos(newHeading), sin(newHeading));
+  vec2 newPosition = i_P + newDirection * movementDistance;
+
+  // Handle mouse interaction for young particles
+  const float segmentPopulation = 0.005;
+  if (i_A < segmentPopulation && mouseButton == 1) {
+    newPosition = 2.0 * cubicInterpolation(i_A / segmentPopulation) - vec2(1.0);
+    newPosition += newDirection * pow(generateNoise(i_P * 132.43, i_T), 1.2);
+  }
+
+  // Output updated particle data
+  v_P = wrapBoundary(newPosition);
+  v_A = fract(i_A + segmentPopulation);
+  v_T = newHeading;
 }`,
         type: this.gl.VERTEX_SHADER
       },
