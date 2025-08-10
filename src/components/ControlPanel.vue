@@ -1,106 +1,157 @@
 <template>
   <div v-show="drawer">
     <v-navigation-drawer permanent width="33%">
-      <h2 class="mx-4">Physarum</h2>
+      <h4 class="mx-4">Physarum -
+        <span v-if="currentPreset">{{ currentPreset.title }}</span>
+      </h4>
+      <div v-if="currentPreset" class="ml-4 text-caption text-medium-emphasis">
+        {{ currentPreset.description }}
+      </div>
       <v-tabs v-model="tabs">
         <v-tab v-for="tab in allTabs" :key="tab">{{ tab }}</v-tab>
       </v-tabs>
       <v-tabs-window v-model="tabs" class="mx-4">
         <!-- Presets tab -->
         <v-tabs-window-item key="Presets">
-          <v-container>
-            <v-row>
-              <v-col cols="12">
-                <h3 class="mb-4">Select Preset</h3>
+          <div class="mt-4">
+            <v-btn
+              color="primary"
+              size="small"
+              class="mr-2 mb-2"
+              @click="saveCurrentPreset"
+              :disabled="!canOverwriteCurrentPreset"
+            >
+              <v-icon left>mdi-content-save</v-icon>
+              Save
+            </v-btn>
+            <v-btn
+              color="secondary"
+              size="small"
+              class="mb-2"
+              @click="showSaveAsDialog = true"
+            >
+              <v-icon left>mdi-content-save-plus</v-icon>
+              Save As...
+            </v-btn>
+          </div>
 
-                <!-- Save buttons -->
-                <div class="mb-4">
-                  <v-btn
-                    color="primary"
-                    size="small"
-                    class="mr-2 mb-2"
-                    @click="saveCurrentPreset"
-                    :disabled="!canOverwriteCurrentPreset"
-                  >
-                    <v-icon left>mdi-content-save</v-icon>
-                    Save
-                  </v-btn>
-                  <v-btn
-                    color="secondary"
-                    size="small"
-                    class="mb-2"
-                    @click="showSaveAsDialog = true"
-                  >
-                    <v-icon left>mdi-content-save-plus</v-icon>
-                    Save As...
-                  </v-btn>
-                </div>
-
-                <div class="mb-2 text-caption text-medium-emphasis">
-                  Use ↑↓ arrows to reorder presets
-                </div>                <v-list>
-                  <v-list-item
-                    v-for="(preset, index) in availablePresets"
-                    :key="preset.id || index"
-                    :class="{ 'v-list-item--active': currentPresetIndex === index }"
-                    @click="selectPreset(index)"
-                  >
-                    <template v-slot:prepend>
-                      <div class="d-flex flex-column mr-2 preset-order-controls">
-                        <v-tooltip text="Move up" location="left">
-                          <template v-slot:activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              icon
-                              size="x-small"
-                              variant="text"
-                              @click.stop="movePresetUp(preset.id, index)"
-                              :disabled="index === 0"
-                              class="mb-1"
-                            >
-                              <v-icon size="small">mdi-chevron-up</v-icon>
-                            </v-btn>
-                          </template>
-                        </v-tooltip>
-                        <v-tooltip text="Move down" location="left">
-                          <template v-slot:activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              icon
-                              size="x-small"
-                              variant="text"
-                              @click.stop="movePresetDown(preset.id, index)"
-                              :disabled="index === availablePresets.length - 1"
-                            >
-                              <v-icon size="small">mdi-chevron-down</v-icon>
-                            </v-btn>
-                          </template>
-                        </v-tooltip>
-                      </div>
-                    </template>
-
-                    <v-list-item-title>{{ preset.title || `Preset ${index + 1}` }}</v-list-item-title>
-                    <v-list-item-subtitle v-if="preset.description">{{ preset.description }}</v-list-item-subtitle>
-
-                    <template v-slot:append v-if="!preset.isDefault">
+          <v-list>
+            <v-list-item
+              v-for="(preset, index) in availablePresets"
+              :key="preset.id || index"
+              :class="{ 'v-list-item--active': currentPresetIndex === index }"
+              @click="selectPreset(index)"
+            >
+              <template v-slot:prepend>
+                <div class="d-flex flex-column mr-2 preset-order-controls">
+                  <v-tooltip text="Move up" location="left">
+                    <template v-slot:activator="{ props }">
                       <v-btn
+                        v-bind="props"
                         icon
-                        size="small"
-                        @click.stop="deletePreset(preset.id)"
-                        class="ml-2"
+                        size="x-small"
+                        variant="text"
+                        @click.stop="movePresetUp(preset.id, index)"
+                        :disabled="index === 0"
+                        class="mb-1"
                       >
-                        <v-icon size="small">mdi-delete</v-icon>
+                        <v-icon size="small">mdi-chevron-up</v-icon>
                       </v-btn>
                     </template>
-                  </v-list-item>
-                </v-list>
-              </v-col>
-            </v-row>
-          </v-container>
+                  </v-tooltip>
+                  <v-tooltip text="Move down" location="left">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        icon
+                        size="x-small"
+                        variant="text"
+                        @click.stop="movePresetDown(preset.id, index)"
+                        :disabled="index === availablePresets.length - 1"
+                      >
+                        <v-icon size="small">mdi-chevron-down</v-icon>
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+                </div>
+              </template>
+
+              <!-- Editable title -->
+              <v-list-item-title class="preset-title-container">
+                <v-text-field
+                  v-if="editingPresetId === preset.id && editingField === 'title'"
+                  v-model="editingValue"
+                  density="compact"
+                  hide-details
+                  autofocus
+                  @blur="saveEdit(preset)"
+                  @keyup.enter="saveEdit(preset)"
+                  @keyup.escape="cancelEdit()"
+                  class="preset-edit-field"
+                ></v-text-field>
+                <span
+                  v-else
+                  @click.stop="startEdit(preset, 'title')"
+                  class="preset-editable-text"
+                  title="Click to edit title"
+                >
+                  {{ preset.title  }}
+                </span>
+              </v-list-item-title>
+
+              <!-- Editable description -->
+              <v-list-item-subtitle v-if="preset.description || (editingPresetId === preset.id && editingField === 'description')" class="preset-description-container">
+                <v-text-field
+                  v-if="editingPresetId === preset.id && editingField === 'description'"
+                  v-model="editingValue"
+                  density="compact"
+                  hide-details
+                  rows="2"
+                  autofocus
+                  @blur="saveEdit(preset)"
+                  @keyup.ctrl.enter="saveEdit(preset)"
+                  @keyup.escape="cancelEdit()"
+                  class="preset-edit-field"
+                ></v-text-field>
+                <span
+                  v-else
+                  @click.stop="startEdit(preset, 'description')"
+                  class="preset-editable-text"
+                  :title="preset.isDefault ? 'Default presets cannot be edited' : 'Click to edit description'"
+                >
+                  {{ preset.description }}
+                  <v-icon v-if="!preset.isDefault" size="small" class="edit-icon">mdi-pencil</v-icon>
+                </span>
+              </v-list-item-subtitle>
+
+              <!-- Add description option for presets without one -->
+              <v-list-item-subtitle v-else-if="!preset.isDefault">
+                <span
+                  @click.stop="startEdit(preset, 'description')"
+                  class="preset-add-description"
+                  title="Click to add description"
+                >
+                  <v-icon size="small" class="mr-1">mdi-plus</v-icon>
+                  Add description...
+                </span>
+              </v-list-item-subtitle>
+
+              <template v-slot:append v-if="!preset.isDefault">
+                <v-btn
+                  icon
+                  size="small"
+                  @click.stop="deletePreset(preset.id)"
+                  class="ml-2"
+                >
+                  <v-icon size="small">mdi-delete</v-icon>
+                </v-btn>
+              </template>
+            </v-list-item>
+          </v-list>
 
           <!-- Save As Dialog -->
-          <v-dialog v-model="showSaveAsDialog" max-width="500px">
-            <v-card>
+          <v-dialog v-model="showSaveAsDialog" max-width="500px" class="save-as">
+            <v-card class="save-as">
               <v-card-title>Save Preset As...</v-card-title>
               <v-card-text>
                 <v-text-field
@@ -195,10 +246,16 @@ export default {
       currentParameters: [],
       showSaveAsDialog: false,
       newPresetTitle: '',
-      newPresetDescription: ''
+      newPresetDescription: '',
+      editingPresetId: null,
+      editingField: null,
+      editingValue: ''
     };
   },
   computed: {
+    currentPreset() {
+      return this.availablePresets[this.currentPresetIndex];
+    },
     groups() {
       return [...new Set(this.simControls.map(control => control.group))];
     },
@@ -464,6 +521,51 @@ export default {
       } catch (error) {
         console.error('Failed to move preset down:', error);
       }
+    },
+    startEdit(preset, field) {
+      this.editingPresetId = preset.id;
+      this.editingField = field;
+      this.editingValue = preset[field] || '';
+    },
+    async saveEdit(preset) {
+      if (!this.editingPresetId || !this.editingField) {
+        return;
+      }
+      const newValue = this.editingValue.trim();
+      // Don't save if value hasn't changed
+      if (newValue === (preset[this.editingField] || '')) {
+        this.cancelEdit();
+        return;
+      }
+      // Don't allow empty titles
+      if (this.editingField === 'title' && !newValue) {
+        this.cancelEdit();
+        return;
+      }
+      try {
+        // Update in database
+        await this.presetDatabase.updatePreset(
+          preset.id,
+          this.editingField === 'title' ? newValue : preset.title,
+          this.editingField === 'description' ? newValue : preset.description,
+          preset.parameters
+        );
+
+        // Update local preset data
+        preset[this.editingField] = newValue;
+        preset.modified = new Date().toISOString();
+
+        console.log(`Updated preset ${this.editingField}: ${preset.title}`);
+      } catch (error) {
+        console.error(`Failed to update preset ${this.editingField}:`, error);
+      }
+
+      this.cancelEdit();
+    },
+    cancelEdit() {
+      this.editingPresetId = null;
+      this.editingField = null;
+      this.editingValue = '';
     }
   },
   watch: {
@@ -475,6 +577,10 @@ export default {
         }
       },
       deep: true
+    },
+    // Cancel editing when clicking on a different preset
+    currentPresetIndex() {
+      this.cancelEdit();
     }
   },
   async mounted() {
@@ -524,6 +630,9 @@ export default {
   z-index: 2002;
   transition: transform 0.3s ease-in-out;
   backdrop-filter: blur(8px);
+}
+.save-as div {
+  color: #ccc !important;
 }
 
 .header-hidden {
@@ -578,6 +687,60 @@ export default {
 
 .preset-order-controls .v-btn:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.preset-editable-text {
+  cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.preset-editable-text:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.preset-editable-text .edit-icon {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.preset-editable-text:hover .edit-icon {
+  opacity: 0.7;
+}
+
+.preset-add-description {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.preset-add-description:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.preset-edit-field {
+  margin: -4px 0;
+}
+
+.preset-title-container,
+.preset-description-container {
+  width: 100%;
+}
+
+.preset-title-container .preset-edit-field,
+.preset-description-container .preset-edit-field {
+  width: 100%;
 }
 
 .v-list-item--active {
