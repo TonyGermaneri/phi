@@ -1200,6 +1200,17 @@ export default {
     // Initialize current parameters array
     this.updateCurrentParameters();
 
+    // Store bound functions for proper cleanup
+    this.boundFunctions = {
+      resizeCanvas: this.simulation.resizeCanvas.bind(this.simulation),
+      mouseTouchMove: this.simulation.mouseTouchMove.bind(this.simulation),
+      mousedown: this.simulation.mousedown.bind(this.simulation),
+      mouseup: this.simulation.mouseup.bind(this.simulation),
+      touchStart: this.simulation.touchStart.bind(this.simulation),
+      touchMove: this.simulation.touchMove.bind(this.simulation),
+      touchEnd: this.simulation.touchEnd.bind(this.simulation)
+    };
+
     // Add keyboard event listener
     document.addEventListener('keydown', this.handleKeydown);
 
@@ -1209,12 +1220,25 @@ export default {
     document.addEventListener('dragleave', this.handleDragLeave);
     document.addEventListener('drop', this.handleDrop);
 
-    window.addEventListener("resize", this.simulation.resizeCanvas.bind(this.simulation));
-    document.addEventListener("pointermove", this.simulation.mouseTouchMove.bind(this.simulation));
-    document.addEventListener("mousemove", this.simulation.mouseTouchMove.bind(this.simulation));
-    document.addEventListener("mousedown", this.simulation.mousedown.bind(this.simulation));
-    document.addEventListener("mouseup", this.simulation.mouseup.bind(this.simulation));
-    document.addEventListener("mouseleave", this.simulation.mouseup.bind(this.simulation));
+    window.addEventListener("resize", this.boundFunctions.resizeCanvas);
+
+    // Use pointer events for unified mouse/touch handling
+    document.addEventListener("pointermove", this.boundFunctions.mouseTouchMove);
+    document.addEventListener("pointerdown", this.boundFunctions.mousedown);
+    document.addEventListener("pointerup", this.boundFunctions.mouseup);
+    document.addEventListener("pointerleave", this.boundFunctions.mouseup);
+
+    // Add touch events for better multi-touch support
+    document.addEventListener("touchstart", this.boundFunctions.touchStart, { passive: false });
+    document.addEventListener("touchmove", this.boundFunctions.touchMove, { passive: false });
+    document.addEventListener("touchend", this.boundFunctions.touchEnd, { passive: false });
+    document.addEventListener("touchcancel", this.boundFunctions.touchEnd, { passive: false });
+
+    // Fallback mouse events for devices that don't support pointer events
+    document.addEventListener("mousemove", this.boundFunctions.mouseTouchMove);
+    document.addEventListener("mousedown", this.boundFunctions.mousedown);
+    document.addEventListener("mouseup", this.boundFunctions.mouseup);
+    document.addEventListener("mouseleave", this.boundFunctions.mouseup);
 
     requestAnimationFrame(this.animate);
 
@@ -1233,6 +1257,23 @@ export default {
     document.removeEventListener('dragenter', this.handleDragEnter);
     document.removeEventListener('dragleave', this.handleDragLeave);
     document.removeEventListener('drop', this.handleDrop);
+
+    // Remove mouse/touch event listeners using stored bound functions
+    if (this.boundFunctions) {
+      window.removeEventListener("resize", this.boundFunctions.resizeCanvas);
+      document.removeEventListener("pointermove", this.boundFunctions.mouseTouchMove);
+      document.removeEventListener("pointerdown", this.boundFunctions.mousedown);
+      document.removeEventListener("pointerup", this.boundFunctions.mouseup);
+      document.removeEventListener("pointerleave", this.boundFunctions.mouseup);
+      document.removeEventListener("touchstart", this.boundFunctions.touchStart);
+      document.removeEventListener("touchmove", this.boundFunctions.touchMove);
+      document.removeEventListener("touchend", this.boundFunctions.touchEnd);
+      document.removeEventListener("touchcancel", this.boundFunctions.touchEnd);
+      document.removeEventListener("mousemove", this.boundFunctions.mouseTouchMove);
+      document.removeEventListener("mousedown", this.boundFunctions.mousedown);
+      document.removeEventListener("mouseup", this.boundFunctions.mouseup);
+      document.removeEventListener("mouseleave", this.boundFunctions.mouseup);
+    }
   }
 };
 </script>

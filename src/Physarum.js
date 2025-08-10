@@ -871,12 +871,41 @@ void main() {
     if (!this.params) {
       return;
     }
-    const rect = this.gl.canvas.getBoundingClientRect();
-    this.params.mouse.x = (e.clientX - rect.x) / this.params.canvasZoom * 2 / this.gl.canvas.width;
-    this.params.mouse.y = (e.clientY - rect.y) / this.params.canvasZoom / this.gl.canvas.height;
-    this.params.mouse.x = this.params.mouse.x - Math.floor(this.params.mouse.x);
-    this.params.mouse.y = this.params.mouse.y - Math.floor(this.params.mouse.y);
 
+    // Handle both mouse and touch events
+    let clientX, clientY;
+
+    if (e.type === 'touchmove') {
+      // For touch events, use the first touch point
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        return; // No touch points
+      }
+    } else if (e.type === 'pointermove') {
+      // For pointer events, use the event coordinates
+      clientX = e.clientX;
+      clientY = e.clientY;
+    } else {
+      // For mouse events
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const rect = this.gl.canvas.getBoundingClientRect();
+
+    // Calculate normalized coordinates [0, 1]
+    let normalizedX = (clientX - rect.left) / rect.width;
+    let normalizedY = (clientY - rect.top) / 2 / rect.height;
+
+    // Convert to simulation space [-1, 1] and handle wrapping
+    this.params.mouse.x = normalizedX * 2 - 1;
+    this.params.mouse.y = normalizedY * 2 - 1;
+
+    // Apply wrapping to keep coordinates in valid range
+    this.params.mouse.x = this.params.mouse.x - Math.floor(this.params.mouse.x + 1);
+    this.params.mouse.y = this.params.mouse.y - Math.floor(this.params.mouse.y + 1);
   }
 
   mousedown(e) {
@@ -884,10 +913,66 @@ void main() {
       return;
     }
     e.preventDefault();
-    this.params.mouse.button = e.button + 1;
+
+    // Handle different event types
+    if (e.type === 'touchstart') {
+      this.params.mouse.button = 1; // Treat touch as left mouse button
+    } else if (e.type === 'pointerdown') {
+      this.params.mouse.button = e.button + 1;
+    } else {
+      this.params.mouse.button = e.button + 1;
+    }
   }
 
   mouseup(e) {
+    this.params.mouse.button = 0;
+  }
+
+  touchStart(e) {
+    if (e.target !== document.getElementById("canvas")) {
+      return;
+    }
+    e.preventDefault();
+
+    // Handle multi-touch - use first touch for primary interaction
+    if (e.touches && e.touches.length > 0) {
+      this.params.mouse.button = 1;
+
+      // Update position with first touch
+      const rect = this.gl.canvas.getBoundingClientRect();
+      let normalizedX = (e.touches[0].clientX - rect.left) / rect.width;
+      let normalizedY = (e.touches[0].clientY - rect.top) / 2 / rect.height;
+
+      this.params.mouse.x = normalizedX * 2 - 1;
+      this.params.mouse.y = normalizedY * 2 - 1;
+
+      this.params.mouse.x = this.params.mouse.x - Math.floor(this.params.mouse.x + 1);
+      this.params.mouse.y = this.params.mouse.y - Math.floor(this.params.mouse.y + 1);
+    }
+  }
+
+  touchMove(e) {
+    if (!this.params) {
+      return;
+    }
+    e.preventDefault();
+
+    // Handle multi-touch - use first touch for primary interaction
+    if (e.touches && e.touches.length > 0) {
+      const rect = this.gl.canvas.getBoundingClientRect();
+      let normalizedX = (e.touches[0].clientX - rect.left) / rect.width;
+      let normalizedY = (e.touches[0].clientY - rect.top) / 2 / rect.height;
+
+      this.params.mouse.x = normalizedX * 2 - 1;
+      this.params.mouse.y = normalizedY * 2 - 1;
+
+      this.params.mouse.x = this.params.mouse.x - Math.floor(this.params.mouse.x + 1);
+      this.params.mouse.y = this.params.mouse.y - Math.floor(this.params.mouse.y + 1);
+    }
+  }
+
+  touchEnd(e) {
+    e.preventDefault();
     this.params.mouse.button = 0;
   }
 
