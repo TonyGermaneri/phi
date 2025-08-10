@@ -144,7 +144,7 @@
     <div v-if="!isMobileDevice">
       <v-icon class="float-right mr-2 mt-2" @click="toggleDrawer">mdi-chevron-double-left</v-icon>
       <h4 class="mx-4 mt-2">Physarum -
-        <span v-if="currentPreset">{{ currentPreset.title }}</span>
+        <span v-if="currentPreset">{{ currentPreset.title }}<span v-if="hasUnsavedChanges" class="unsaved-indicator">*</span></span>
       </h4>
       <div v-if="currentPreset" class="ml-4 text-caption text-medium-emphasis d-inline-block">
         {{ currentPreset.description }}
@@ -277,9 +277,10 @@
             class="mr-2 mb-2"
             @click="saveCurrentPreset"
             :disabled="!canOverwriteCurrentPreset"
+            :variant="hasUnsavedChanges ? 'elevated' : 'text'"
           >
             <v-icon left>mdi-content-save</v-icon>
-            Save
+            Save<span v-if="hasUnsavedChanges" class="unsaved-indicator">*</span>
           </v-btn>
           <v-btn
             color="secondary"
@@ -370,7 +371,7 @@
                       class="preset-editable-text preset-title"
                       title="Click to edit title"
                     >
-                      {{ preset.title  }}
+                      {{ preset.title }}<span v-if="currentPresetIndex === index && hasUnsavedChanges" class="unsaved-indicator">*</span>
                     </span>
                   </div>
 
@@ -448,7 +449,7 @@
             <div v-else class="mobile-preset-item" @click.stop>
               <div class="mobile-preset-header" @click="selectPreset(index)">
                 <div class="mobile-preset-info">
-                  <div class="mobile-preset-title">{{ preset.title }}</div>
+                  <div class="mobile-preset-title">{{ preset.title }}<span v-if="currentPresetIndex === index && hasUnsavedChanges" class="unsaved-indicator">*</span></div>
                   <div v-if="preset.description" class="mobile-preset-description">{{ preset.description }}</div>
                 </div>
                 <v-btn
@@ -691,6 +692,8 @@ export default {
       availablePresets: [],
       currentPresetIndex: 0,
       currentParameters: [],
+      hasUnsavedChanges: false,
+      savedParameters: [], // Store the last saved state for comparison
       showSaveAsDialog: false,
       newPresetTitle: '',
       newPresetDescription: '',
@@ -741,6 +744,7 @@ export default {
         { key: 'R', description: 'Randomize Parameters (by deviation %)' },
         { key: 'SPACE', description: 'Toggle Fullscreen' },
         { key: 'S', description: 'Save Current Preset' },
+        { key: 'CMD/CTRL+S', description: 'Save Current Preset' },
         { key: 'L', description: 'Revert to Saved Preset' },
         { key: 'ENTER', description: 'Play/Pause Playlist' },
         { key: 'SHIFT+L', description: 'Toggle Loop' },
@@ -990,6 +994,9 @@ export default {
           this.currentParameters[i] = randomParameters[i];
         }
       }
+
+      // Check for unsaved changes after randomization
+      this.checkForUnsavedChanges();
     },
     // Keyboard shortcut methods
     handleKeydown(event) {
@@ -1048,7 +1055,11 @@ export default {
           event.preventDefault();
           break;
         case 's':
-          if (event.shiftKey) {
+          if (event.metaKey || event.ctrlKey) {
+            // CMD/CTRL+S saves the current preset
+            this.saveCurrentPresetKeyboard();
+            event.preventDefault();
+          } else if (event.shiftKey) {
             this.toggleShuffle();
           } else {
             this.saveCurrentPresetKeyboard();
@@ -1131,6 +1142,9 @@ export default {
             this.currentParameters[i] = currentPreset.parameters[i];
           }
         }
+
+        // Reset unsaved changes flag since we reverted to saved state
+        this.hasUnsavedChanges = false;
         this.showMessage(`Reverted to saved: ${currentPreset.title}`);
       } else {
         this.showMessage('No saved version to revert to');
@@ -1159,30 +1173,88 @@ export default {
       if (this.simulation && control.index !== undefined) {
         this.simulation.updateParameter(control.index, value);
         this.currentParameters[control.index] = value;
+
+        // Check if we have unsaved changes by comparing with saved state
+        this.checkForUnsavedChanges();
       }
+    },
+    checkForUnsavedChanges() {
+      if (this.savedParameters.length === 0) {
+        // No saved state yet, consider any changes as unsaved
+        this.hasUnsavedChanges = this.currentParameters.some(param => param !== undefined);
+        return;
+      }
+
+      // Compare current parameters with saved parameters
+      this.hasUnsavedChanges = this.currentParameters.some((param, index) =>
+        param !== this.savedParameters[index]
+      );
     },
     updateSystemParameter(control, value) {
       if (this.simulation) {
         this.simulation.updateSystemParameter(control.name, value);
+
+        // System parameter changes could be considered as changes needing save
+        // depending on your requirements, you might want to track these too
+        this.checkForUnsavedChanges();
       }
     },
-    selectPreset(index) {
-      if (this.simulation && index >= 0 && index < this.simulation.parameterSets.length) {
+    async selectPreset(index) {
+      if (this.simulation && index >= 0 && index < this.availablePresets.length) {
         this.currentPresetIndex = index;
-        this.simulation.setPreset(index);
-        this.updateCurrentParameters();
+
+        // Get the preset ID to reload from database
+        const presetId = this.availablePresets[index].id;
+
+        try {
+          // Reload the preset from the database to get the fresh saved state
+          const freshPreset = await this.presetDatabase.getPreset(presetId);
+          if (freshPreset && freshPreset.parameters) {
+            // Update the local preset data with fresh database values
+            this.availablePresets[index] = { ...freshPreset };
+
+            // Update the simulation parameter set with fresh data
+            this.simulation.parameterSets[index] = new Float32Array(freshPreset.parameters);
+
+            // Set the preset in simulation with fresh parameters
+            this.simulation.setPreset(index);
+            this.updateCurrentParameters();
+
+            // Store the saved state for change detection and reset unsaved changes
+            this.savedParameters = [...freshPreset.parameters];
+            this.hasUnsavedChanges = false; // No unsaved changes since we loaded fresh from DB
+
+            // Store original parameters for revert functionality
+            this.originalPresetParameters[freshPreset.id] = [...freshPreset.parameters];
+          } else {
+            // Fallback to existing behavior if database read fails
+            this.simulation.setPreset(index);
+            this.updateCurrentParameters();
+
+            const preset = this.availablePresets[index];
+            if (preset && preset.parameters) {
+              this.savedParameters = [...preset.parameters];
+              this.hasUnsavedChanges = false;
+            }
+          }
+        } catch (error) {
+          console.error('Failed to reload preset from database:', error);
+          // Fallback to existing behavior if database read fails
+          this.simulation.setPreset(index);
+          this.updateCurrentParameters();
+
+          const preset = this.availablePresets[index];
+          if (preset && preset.parameters) {
+            this.savedParameters = [...preset.parameters];
+            this.hasUnsavedChanges = false;
+          }
+        }
 
         // Reset progress indicators when manually changing presets
         if (this.isPlaylistPlaying) {
           this.playlistProgress = 0;
         }
         this.convergenceProgress = 0;
-
-        // Store original parameters for revert functionality
-        const preset = this.availablePresets[index];
-        if (preset && preset.parameters) {
-          this.originalPresetParameters[preset.id] = [...preset.parameters];
-        }
       }
     },
     updateCurrentParameters() {
@@ -1256,6 +1328,10 @@ export default {
 
         // Update simulation parameter set
         this.simulation.parameterSets[this.currentPresetIndex] = new Float32Array(currentParams);
+
+        // Update saved state and clear unsaved changes flag
+        this.savedParameters = [...currentParams];
+        this.hasUnsavedChanges = false;
       } catch (error) {
         console.error('Failed to save preset:', error);
       }
@@ -1282,6 +1358,10 @@ export default {
         // Select the new preset
         this.currentPresetIndex = this.availablePresets.length - 1;
         this.simulation.setPreset(this.currentPresetIndex);
+
+        // Update saved state since we just created a new preset with current parameters
+        this.savedParameters = [...currentParams];
+        this.hasUnsavedChanges = false;
 
         this.cancelSaveAs();
       } catch (error) {
@@ -1643,6 +1723,15 @@ export default {
     // Initialize current parameters array
     this.updateCurrentParameters();
 
+    // Initialize saved state
+    if (this.availablePresets.length > 0 && this.availablePresets[this.currentPresetIndex]) {
+      const currentPreset = this.availablePresets[this.currentPresetIndex];
+      if (currentPreset.parameters) {
+        this.savedParameters = [...currentPreset.parameters];
+        this.hasUnsavedChanges = false;
+      }
+    }
+
     // Initialize convergence rate control with simulation's initial value
     if (this.simulation && this.simulation.params) {
       this.convergenceRateControl = this.simulation.params.convergenceRate;
@@ -1769,6 +1858,12 @@ export default {
   padding: 2px 4px;
   border-radius: 4px;
   transition: background-color 0.2s ease;
+}
+
+.unsaved-indicator {
+  color: #ff6b6b;
+  font-weight: bold;
+  margin-left: 4px;
 }
 
 .preset-editable-text:hover {
