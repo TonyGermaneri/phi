@@ -282,15 +282,15 @@
                       v-else
                       @click.stop="startEdit(preset, 'description')"
                       class="preset-editable-text preset-subtitle"
-                      :title="preset.isDefault ? 'Default presets cannot be edited' : 'Click to edit description'"
+                      title="Click to edit description"
                     >
                       {{ preset.description }}
-                      <v-icon v-if="!preset.isDefault" size="small" class="edit-icon">mdi-pencil</v-icon>
+                      <v-icon size="small" class="edit-icon">mdi-pencil</v-icon>
                     </span>
                   </div>
 
                   <!-- Add description option for presets without one -->
-                  <div v-else-if="!preset.isDefault" class="preset-description-container">
+                  <div v-else class="preset-description-container">
                     <span
                       @click.stop="startEdit(preset, 'description')"
                       class="preset-add-description"
@@ -322,7 +322,6 @@
                     <v-icon size="small">mdi-content-copy</v-icon>
                   </v-btn>
                   <v-btn
-                    v-if="!preset.isDefault"
                     icon
                     size="small"
                     @click.stop="showDeleteConfirmation(preset)"
@@ -397,7 +396,7 @@
                       Duplicate
                     </v-btn>
                   </div>
-                  <div v-if="!preset.isDefault" class="mobile-action-row">
+                  <div class="mobile-action-row">
                     <v-btn
                       variant="text"
                       size="small"
@@ -636,7 +635,7 @@ export default {
     },
     canOverwriteCurrentPreset() {
       const currentPreset = this.availablePresets[this.currentPresetIndex];
-      return currentPreset && !currentPreset.isDefault;
+      return currentPreset;
     }
   },
   methods: {
@@ -785,12 +784,6 @@ export default {
         this.showMessage('No preset selected');
         return;
       }
-
-      if (currentPreset.isDefault) {
-        this.showMessage('Cannot save default preset');
-        return;
-      }
-
       await this.saveCurrentPreset();
       this.showMessage(`Saved preset: ${currentPreset.title}`);
     },
@@ -907,7 +900,7 @@ export default {
     },
     async saveCurrentPreset() {
       const currentPreset = this.availablePresets[this.currentPresetIndex];
-      if (!currentPreset || currentPreset.isDefault) {
+      if (!currentPreset) {
         console.warn('Cannot overwrite default preset');
         return;
       }
