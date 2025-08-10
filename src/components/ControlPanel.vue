@@ -140,7 +140,15 @@
                 <v-btn
                   icon
                   size="small"
-                  @click.stop="deletePreset(preset.id)"
+                  @click.stop="duplicatePreset(preset)"
+                  class="ml-2"
+                >
+                  <v-icon size="small">mdi-content-copy</v-icon>
+                </v-btn>
+                <v-btn
+                  icon
+                  size="small"
+                  @click.stop="showDeleteConfirmation(preset)"
                   class="ml-2"
                 >
                   <v-icon size="small">mdi-delete</v-icon>
@@ -176,6 +184,28 @@
                   :disabled="!newPresetTitle.trim()"
                 >
                   Save
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+
+          <!-- Delete Confirmation Dialog -->
+          <v-dialog v-model="showDeleteDialog" max-width="400px"  class="delete-dialog">
+            <v-card class="delete-dialog">
+              <v-card-title class="text-h6">Delete Preset</v-card-title>
+              <v-card-text>
+                Are you sure you want to delete the preset "{{ presetToDelete?.title }}"?
+                <br><br>
+                This action cannot be undone.
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn @click="cancelDelete">Cancel</v-btn>
+                <v-btn
+                  color="error"
+                  @click="confirmDelete"
+                >
+                  Delete
                 </v-btn>
               </v-card-actions>
             </v-card>
@@ -230,6 +260,8 @@ export default {
       showSaveAsDialog: false,
       newPresetTitle: '',
       newPresetDescription: '',
+      showDeleteDialog: false,
+      presetToDelete: null,
       editingPresetId: null,
       editingField: null,
       editingValue: ''
@@ -416,11 +448,21 @@ export default {
       this.newPresetTitle = '';
       this.newPresetDescription = '';
     },
-    async deletePreset(presetId) {
-      if (!confirm('Are you sure you want to delete this preset?')) {
-        return;
+    showDeleteConfirmation(preset) {
+      this.presetToDelete = preset;
+      this.showDeleteDialog = true;
+    },
+    cancelDelete() {
+      this.showDeleteDialog = false;
+      this.presetToDelete = null;
+    },
+    async confirmDelete() {
+      if (this.presetToDelete) {
+        await this.deletePreset(this.presetToDelete.id);
+        this.cancelDelete();
       }
-
+    },
+    async deletePreset(presetId) {
       try {
         await this.presetDatabase.deletePreset(presetId);
 
@@ -447,6 +489,29 @@ export default {
         console.log('Preset deleted successfully');
       } catch (error) {
         console.error('Failed to delete preset:', error);
+      }
+    },
+    async duplicatePreset(preset) {
+      try {
+        // Create a copy with a new title
+        const duplicatedTitle = `${preset.title} (Copy)`;
+        const duplicatedDescription = preset.description || '';
+
+        const newPreset = await this.presetDatabase.saveUserPreset(
+          duplicatedTitle,
+          duplicatedDescription,
+          preset.parameters
+        );
+
+        // Add to local presets list
+        this.availablePresets.push(newPreset);
+
+        // Add to simulation parameter sets
+        this.simulation.addParameterSet(preset.parameters);
+
+        console.log(`Duplicated preset: ${duplicatedTitle}`);
+      } catch (error) {
+        console.error('Failed to duplicate preset:', error);
       }
     },
     async movePresetUp(presetId, currentIndex) {
@@ -614,17 +679,8 @@ export default {
   transition: transform 0.3s ease-in-out;
   backdrop-filter: blur(8px);
 }
-.save-as div {
+.delete-dialog div, .save-as div {
   color: #ccc !important;
-}
-
-.header-hidden {
-  transform: translateY(-100%);
-}
-
-.rotate-icon {
-  transform: rotate(45deg);
-  transition: transform 0.3s ease;
 }
 
 .v-navigation-drawer {
@@ -733,12 +789,6 @@ export default {
 
 .v-btn {
   text-transform: none;
-}
-
-.v-dialog .v-card {
-  background: rgba(30, 30, 30, 0.95) !important;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .parameter-control {
