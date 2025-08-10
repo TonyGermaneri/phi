@@ -82,12 +82,28 @@
           <v-btn
             color="secondary"
             size="small"
-            class="mb-2"
+            class="mr-2 mb-2"
             @click="showSaveAsDialog = true"
           >
             <v-icon left>mdi-content-save-plus</v-icon>
             Save As...
           </v-btn>
+          <v-btn
+            color="info"
+            size="small"
+            class="mb-2"
+            @click="triggerFileUpload"
+          >
+            <v-icon left>mdi-upload</v-icon>
+            Import
+          </v-btn>
+          <input
+            ref="fileInput"
+            type="file"
+            accept=".json"
+            style="display: none"
+            @change="handleFileUpload"
+          />
         </div>
 
         <v-list>
@@ -195,8 +211,18 @@
               <v-btn
                 icon
                 size="small"
+                @click.stop="downloadPreset(preset)"
+                class="ml-2"
+                title="Download preset"
+              >
+                <v-icon size="small">mdi-download</v-icon>
+              </v-btn>
+              <v-btn
+                icon
+                size="small"
                 @click.stop="duplicatePreset(preset)"
                 class="ml-2"
+                title="Duplicate preset"
               >
                 <v-icon size="small">mdi-content-copy</v-icon>
               </v-btn>
@@ -205,6 +231,7 @@
                 size="small"
                 @click.stop="showDeleteConfirmation(preset)"
                 class="ml-2"
+                title="Delete preset"
               >
                 <v-icon size="small">mdi-delete</v-icon>
               </v-btn>
@@ -265,6 +292,54 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+
+        <!-- Import Conflict Resolution Dialog -->
+        <v-dialog v-model="showImportConflictDialog" max-width="500px" class="import-conflict-dialog">
+          <v-card class="import-conflict-dialog">
+            <v-card-title class="text-h6">Import Conflict</v-card-title>
+            <v-card-text>
+              <p>A preset with the same ID already exists:</p>
+              <div class="conflict-preset-info mt-3 mb-3 pa-3" style="background: rgba(255, 255, 255, 0.1); border-radius: 8px;">
+                <div><strong>Existing:</strong> {{ conflictData?.existingPreset?.title }}</div>
+                <div class="text-caption">Version: {{ conflictData?.existingPreset?.version || 1 }}</div>
+                <div class="text-caption">Modified: {{ formatDate(conflictData?.existingPreset?.modified) }}</div>
+              </div>
+              <div class="conflict-preset-info mb-3 pa-3" style="background: rgba(255, 255, 255, 0.1); border-radius: 8px;">
+                <div><strong>Importing:</strong> {{ conflictData?.importData?.title }}</div>
+                <div class="text-caption">Version: {{ conflictData?.importData?.version || 1 }}</div>
+                <div class="text-caption">Export Date: {{ formatDate(conflictData?.importData?.exportedAt) }}</div>
+              </div>
+              <p>How would you like to proceed?</p>
+            </v-card-text>
+            <v-card-actions class="flex-column align-stretch">
+              <v-btn
+                color="warning"
+                @click="resolveImportConflict('overwrite')"
+                class="mb-2"
+                block
+              >
+                <v-icon left>mdi-content-save-edit</v-icon>
+                Overwrite Existing (Version {{ (conflictData?.existingPreset?.version || 1) + 1 }})
+              </v-btn>
+              <v-btn
+                color="primary"
+                @click="resolveImportConflict('import_new')"
+                class="mb-2"
+                block
+              >
+                <v-icon left>mdi-content-copy</v-icon>
+                Import as New Preset
+              </v-btn>
+              <v-btn
+                @click="cancelImportConflict"
+                block
+              >
+                <v-icon left>mdi-cancel</v-icon>
+                Cancel Import
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </v-tabs-window-item>
 
       <!-- Simulation parameter tabs -->
@@ -284,6 +359,15 @@
       </v-tabs-window-item>
     </v-tabs-window>
   </v-navigation-drawer>
+
+  <!-- Drag and Drop Overlay -->
+  <div v-if="isDragOver" class="drag-overlay">
+    <div class="drag-overlay-content">
+      <v-icon size="64" class="mb-4">mdi-file-import</v-icon>
+      <h2>Drop JSON Preset File Here</h2>
+      <p>Release to import the preset</p>
+    </div>
+  </div>
 </template>
 
 
@@ -319,6 +403,13 @@ export default {
       editingPresetId: null,
       editingField: null,
       editingValue: '',
+      // Import/Export related data
+      showImportConflictDialog: false,
+      conflictData: null,
+      importingFile: null,
+      // Drag and drop state
+      isDragOver: false,
+      dragCounter: 0,
       // Keyboard shortcuts related data
       showHelpDialog: false,
       showSnackbar: false,
@@ -849,6 +940,154 @@ export default {
       this.editingPresetId = null;
       this.editingField = null;
       this.editingValue = '';
+    },
+    // Import/Export methods
+    downloadPreset(preset) {
+      try {
+        this.presetDatabase.downloadPreset(preset);
+        this.showMessage(`Downloaded preset: ${preset.title}`);
+      } catch (error) {
+        console.error('Failed to download preset:', error);
+        this.showMessage('Failed to download preset');
+      }
+    },
+    triggerFileUpload() {
+      this.$refs.fileInput.click();
+    },
+    async handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const result = await this.presetDatabase.importPresetFromFile(e.target.result, 'ask');
+
+            if (result.status === 'conflict') {
+              this.conflictData = result;
+              this.importingFile = e.target.result;
+              this.showImportConflictDialog = true;
+            } else if (result.status === 'success') {
+              await this.handleSuccessfulImport(result.preset);
+            }
+          } catch (error) {
+            console.error('Import error:', error);
+            this.showMessage(`Import failed: ${error.message}`);
+          }
+        };
+        reader.readAsText(file);
+      } catch (error) {
+        console.error('File read error:', error);
+        this.showMessage('Failed to read file');
+      }
+
+      // Clear the input
+      event.target.value = '';
+    },
+    async resolveImportConflict(resolution) {
+      if (!this.importingFile || !this.conflictData) return;
+
+      try {
+        const result = await this.presetDatabase.importPresetFromFile(this.importingFile, resolution);
+
+        if (result.status === 'success') {
+          await this.handleSuccessfulImport(result.preset);
+        }
+      } catch (error) {
+        console.error('Import resolution error:', error);
+        this.showMessage(`Import failed: ${error.message}`);
+      }
+
+      this.cancelImportConflict();
+    },
+    async handleSuccessfulImport(newPreset) {
+      // Add to local presets list
+      this.availablePresets.push(newPreset);
+
+      // Add to simulation parameter sets
+      this.simulation.addParameterSet(newPreset.parameters);
+
+      // Select the new preset
+      this.currentPresetIndex = this.availablePresets.length - 1;
+      this.simulation.setPreset(this.currentPresetIndex);
+      this.updateCurrentParameters();
+
+      this.showMessage(`Imported preset: ${newPreset.title}`);
+      console.log(`Imported preset: ${newPreset.title}`);
+    },
+    cancelImportConflict() {
+      this.showImportConflictDialog = false;
+      this.conflictData = null;
+      this.importingFile = null;
+    },
+    formatDate(dateString) {
+      if (!dateString) return 'Unknown';
+      try {
+        return new Date(dateString).toLocaleString();
+      } catch {
+        return 'Invalid Date';
+      }
+    },
+    // Drag and Drop methods
+    handleDragEnter(event) {
+      event.preventDefault();
+      this.dragCounter++;
+      if (event.dataTransfer.items && event.dataTransfer.items.length > 0) {
+        this.isDragOver = true;
+      }
+    },
+    handleDragOver(event) {
+      event.preventDefault();
+    },
+    handleDragLeave(event) {
+      event.preventDefault();
+      this.dragCounter--;
+      if (this.dragCounter === 0) {
+        this.isDragOver = false;
+      }
+    },
+    async handleDrop(event) {
+      event.preventDefault();
+      this.dragCounter = 0;
+      this.isDragOver = false;
+
+      const files = event.dataTransfer.files;
+      if (files.length === 0) return;
+
+      const file = files[0];
+
+      // Check if it's a JSON file
+      if (!file.name.toLowerCase().endsWith('.json')) {
+        this.showMessage('Please drop a JSON preset file');
+        return;
+      }
+
+      try {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const result = await this.presetDatabase.importPresetFromFile(e.target.result, 'ask');
+
+            if (result.status === 'conflict') {
+              this.conflictData = result;
+              this.importingFile = e.target.result;
+              this.showImportConflictDialog = true;
+            } else if (result.status === 'success') {
+              await this.handleSuccessfulImport(result.preset);
+            }
+          } catch (error) {
+            console.error('Import error:', error);
+            this.showMessage(`Import failed: ${error.message}`);
+          }
+        };
+        reader.readAsText(file);
+
+        this.showMessage(`Processing dropped file: ${file.name}`);
+      } catch (error) {
+        console.error('File read error:', error);
+        this.showMessage('Failed to read dropped file');
+      }
     }
   },
   watch: {
@@ -885,6 +1124,12 @@ export default {
     // Add keyboard event listener
     document.addEventListener('keydown', this.handleKeydown);
 
+    // Add drag and drop event listeners
+    document.addEventListener('dragover', this.handleDragOver);
+    document.addEventListener('dragenter', this.handleDragEnter);
+    document.addEventListener('dragleave', this.handleDragLeave);
+    document.addEventListener('drop', this.handleDrop);
+
     window.addEventListener("resize", this.simulation.resizeCanvas.bind(this.simulation));
     document.addEventListener("pointermove", this.simulation.mouseTouchMove.bind(this.simulation));
     document.addEventListener("mousemove", this.simulation.mouseTouchMove.bind(this.simulation));
@@ -903,6 +1148,12 @@ export default {
   beforeUnmount() {
     // Remove keyboard event listener
     document.removeEventListener('keydown', this.handleKeydown);
+
+    // Remove drag and drop event listeners
+    document.removeEventListener('dragover', this.handleDragOver);
+    document.removeEventListener('dragenter', this.handleDragEnter);
+    document.removeEventListener('dragleave', this.handleDragLeave);
+    document.removeEventListener('drop', this.handleDrop);
   }
 };
 </script>
@@ -922,7 +1173,7 @@ export default {
   transition: transform 0.3s ease-in-out;
   backdrop-filter: blur(8px);
 }
-.help-dialog div, .delete-dialog div, .save-as div {
+.help-dialog div, .delete-dialog div, .save-as div, .import-conflict-dialog div {
   color: #ccc !important;
 }
 
@@ -1097,6 +1348,59 @@ export default {
 
 .keyboard-feedback .v-snackbar__content {
   color: #fff !important;
+}
+
+.conflict-preset-info {
+  font-size: 0.9em;
+}
+
+.conflict-preset-info .text-caption {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 0.8em;
+}
+
+/* Drag and Drop Overlay */
+.drag-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.drag-overlay-content {
+  text-align: center;
+  color: #fff;
+  padding: 2rem;
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0.7; transform: scale(1); }
+}
+
+.drag-overlay-content h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.drag-overlay-content p {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 1rem;
 }
 
 </style>

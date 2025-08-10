@@ -103,6 +103,7 @@ class PresetDatabase {
         originalParameters: originalParameterLines ? [...originalParameterLines[i].slice(0, 32)] : [...presets[i]], // Store original for reset
         isDefault: true,
         listOrder: i,
+        version: 1,
         created: new Date().toISOString(),
         modified: new Date().toISOString()
       };
@@ -144,6 +145,7 @@ class PresetDatabase {
       parameters: [...parameters], // Deep copy
       isDefault: false,
       listOrder: maxOrder + 1,
+      version: 1,
       created: new Date().toISOString(),
       modified: new Date().toISOString()
     };
@@ -156,21 +158,19 @@ class PresetDatabase {
    * Update an existing preset
    */
   async updatePreset(id, title, description, parameters) {
-    const existing = await this.getPreset(id);
-    if (!existing) {
+    const preset = await this.getPreset(id);
+    if (!preset) {
       throw new Error('Preset not found');
     }
 
-    const updated = {
-      ...existing,
-      title: title.trim(),
-      description: description.trim(),
-      parameters: [...parameters], // Deep copy
-      modified: new Date().toISOString()
-    };
+    preset.title = title.trim();
+    preset.description = description.trim();
+    preset.parameters = [...parameters];
+    preset.version = (preset.version || 1) + 1;
+    preset.modified = new Date().toISOString();
 
-    await this.putPreset(updated);
-    return updated;
+    await this.putPreset(preset);
+    return preset;
   }
 
   /**
@@ -489,6 +489,169 @@ class PresetDatabase {
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsText(file);
     });
+  }
+
+  /**
+   * Export preset to JSON format for download
+   */
+  exportPreset(preset) {
+    const exportData = {
+      id: preset.id,
+      title: preset.title,
+      description: preset.description || '',
+      parameters: [...preset.parameters],
+      version: preset.version || 1,
+      created: preset.created,
+      modified: preset.modified,
+      exportedAt: new Date().toISOString(),
+      format: 'PhysarumPreset',
+      formatVersion: '1.0'
+    };
+
+    return JSON.stringify(exportData, null, 2);
+  }
+
+  /**
+   * Download preset as JSON file
+   */
+  downloadPreset(preset) {
+    const jsonData = this.exportPreset(preset);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${preset.title.replace(/[^a-zA-Z0-9]/g, '_')}_preset.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Get default parameter values for validation
+   */
+  getDefaultParameters() {
+    // Return default parameter set - using the first default preset if available
+    if (this.defaultPresets && this.defaultPresets.length > 0) {
+      return [...this.defaultPresets[0].parameters];
+    }
+
+    // Fallback default parameters (32 parameters based on the example in ControlPanel.vue)
+    return [0.000, 4.000, 0.300, 0.100, 51.32, 20.00, 0.410, 4.000, 0.000, 0.100, 6.000, 0.100, 0.000, 0.000, 0.400, 0.705, 1.000, 0.300, 0.250, 8.0, 0.200, 0.800, 0.700, 0.300, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00];
+  }
+
+  /**
+   * Validate and normalize parameters array
+   */
+  validateParameters(parameters) {
+    const defaultParams = this.getDefaultParameters();
+    const normalizedParams = [...parameters];
+
+    // Add missing parameters from defaults
+    while (normalizedParams.length < defaultParams.length) {
+      normalizedParams.push(defaultParams[normalizedParams.length]);
+    }
+
+    // Truncate if too many parameters
+    if (normalizedParams.length > defaultParams.length) {
+      normalizedParams.length = defaultParams.length;
+    }
+
+    return normalizedParams;
+  }
+
+  /**
+   * Import preset from JSON data with conflict resolution
+   */
+  async importPresetFromFile(jsonData, conflictResolution = 'ask') {
+    let data;
+    try {
+      data = JSON.parse(jsonData);
+    } catch (error) {
+      throw new Error('Invalid JSON format');
+    }
+
+    // Validate format
+    if (data.format !== 'PhysarumPreset') {
+      throw new Error('Invalid preset format. Expected PhysarumPreset format.');
+    }
+
+    // Validate required fields
+    if (!data.title || !Array.isArray(data.parameters)) {
+      throw new Error('Invalid preset data. Missing required fields.');
+    }
+
+    // Validate and normalize parameters
+    const validatedParameters = this.validateParameters(data.parameters);
+
+    // Check if preset with same ID already exists
+    const existingPreset = await this.getPreset(data.id);
+
+    if (existingPreset && conflictResolution === 'ask') {
+      return {
+        status: 'conflict',
+        existingPreset,
+        importData: {
+          ...data,
+          parameters: validatedParameters
+        }
+      };
+    }
+
+    let preset;
+
+    if (existingPreset && conflictResolution === 'overwrite') {
+      // Update existing preset with new version
+      preset = {
+        ...existingPreset,
+        title: data.title,
+        description: data.description || '',
+        parameters: validatedParameters,
+        version: (existingPreset.version || 1) + 1,
+        modified: new Date().toISOString()
+      };
+      await this.putPreset(preset);
+    } else if (existingPreset && conflictResolution === 'import_new') {
+      // Create new preset with new ID
+      const allPresets = await this.getAllPresets();
+      const maxOrder = allPresets.reduce((max, preset) => Math.max(max, preset.listOrder || 0), -1);
+
+      preset = {
+        id: this.generateUUID(),
+        title: `${data.title} (Imported)`,
+        description: data.description || '',
+        parameters: validatedParameters,
+        isDefault: false,
+        listOrder: maxOrder + 1,
+        version: 1,
+        created: new Date().toISOString(),
+        modified: new Date().toISOString()
+      };
+      await this.putPreset(preset);
+    } else if (!existingPreset) {
+      // Create new preset with original ID
+      const allPresets = await this.getAllPresets();
+      const maxOrder = allPresets.reduce((max, preset) => Math.max(max, preset.listOrder || 0), -1);
+
+      preset = {
+        id: data.id,
+        title: data.title,
+        description: data.description || '',
+        parameters: validatedParameters,
+        isDefault: false,
+        listOrder: maxOrder + 1,
+        version: data.version || 1,
+        created: data.created || new Date().toISOString(),
+        modified: new Date().toISOString()
+      };
+      await this.putPreset(preset);
+    }
+
+    return {
+      status: 'success',
+      preset
+    };
   }
 }
 
