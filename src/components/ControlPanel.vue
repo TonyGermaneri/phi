@@ -1,17 +1,41 @@
 <template>
   <div v-show="drawer">
     <v-navigation-drawer permanent width="33%">
+      <h2 class="mx-4">Physarum</h2>
       <v-tabs v-model="tabs">
         <v-tab v-for="tab in allTabs" :key="tab">{{ tab }}</v-tab>
       </v-tabs>
       <v-tabs-window v-model="tabs" class="mx-4">
-
         <!-- Presets tab -->
         <v-tabs-window-item key="Presets">
           <v-container>
             <v-row>
               <v-col cols="12">
                 <h3 class="mb-4">Select Preset</h3>
+
+                <!-- Save buttons -->
+                <div class="mb-4">
+                  <v-btn
+                    color="primary"
+                    size="small"
+                    class="mr-2 mb-2"
+                    @click="saveCurrentPreset"
+                    :disabled="!canOverwriteCurrentPreset"
+                  >
+                    <v-icon left>mdi-content-save</v-icon>
+                    Save
+                  </v-btn>
+                  <v-btn
+                    color="secondary"
+                    size="small"
+                    class="mb-2"
+                    @click="showSaveAsDialog = true"
+                  >
+                    <v-icon left>mdi-content-save-plus</v-icon>
+                    Save As...
+                  </v-btn>
+                </div>
+
                 <v-list>
                   <v-list-item
                     v-for="(preset, index) in availablePresets"
@@ -21,11 +45,53 @@
                   >
                     <v-list-item-title>{{ preset.title || `Preset ${index + 1}` }}</v-list-item-title>
                     <v-list-item-subtitle v-if="preset.description">{{ preset.description }}</v-list-item-subtitle>
+                    <template v-slot:append v-if="!preset.isDefault">
+                      <v-btn
+                        icon
+                        size="small"
+                        @click.stop="deletePreset(preset.id)"
+                        class="ml-2"
+                      >
+                        <v-icon size="small">mdi-delete</v-icon>
+                      </v-btn>
+                    </template>
                   </v-list-item>
                 </v-list>
               </v-col>
             </v-row>
           </v-container>
+
+          <!-- Save As Dialog -->
+          <v-dialog v-model="showSaveAsDialog" max-width="500px">
+            <v-card>
+              <v-card-title>Save Preset As...</v-card-title>
+              <v-card-text>
+                <v-text-field
+                  v-model="newPresetTitle"
+                  label="Preset Name"
+                  required
+                  autofocus
+                  @keyup.enter="saveAsNewPreset"
+                ></v-text-field>
+                <v-textarea
+                  v-model="newPresetDescription"
+                  label="Description (optional)"
+                  rows="3"
+                ></v-textarea>
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn @click="cancelSaveAs">Cancel</v-btn>
+                <v-btn
+                  color="primary"
+                  @click="saveAsNewPreset"
+                  :disabled="!newPresetTitle.trim()"
+                >
+                  Save
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
         </v-tabs-window-item>
 
         <!-- Simulation parameter tabs -->
@@ -89,7 +155,10 @@ export default {
       simulation: null,
       availablePresets: [],
       currentPresetIndex: 0,
-      currentParameters: []
+      currentParameters: [],
+      showSaveAsDialog: false,
+      newPresetTitle: '',
+      newPresetDescription: ''
     };
   },
   computed: {
@@ -103,6 +172,10 @@ export default {
       return (group) => {
         return this.simControls.filter(c => c.group == group);
       };
+    },
+    canOverwriteCurrentPreset() {
+      const currentPreset = this.availablePresets[this.currentPresetIndex];
+      return currentPreset && !currentPreset.isDefault;
     }
   },
   methods: {
@@ -203,6 +276,101 @@ export default {
       } catch (error) {
         console.error('Failed to create default presets:', error);
       }
+    },
+    async saveCurrentPreset() {
+      const currentPreset = this.availablePresets[this.currentPresetIndex];
+      if (!currentPreset || currentPreset.isDefault) {
+        console.warn('Cannot overwrite default preset');
+        return;
+      }
+
+      try {
+        const currentParams = this.simulation.getCurrentParameters();
+        await this.presetDatabase.updatePreset(
+          currentPreset.id,
+          currentPreset.title,
+          currentPreset.description,
+          currentParams
+        );
+
+        // Update the local preset data
+        currentPreset.parameters = [...currentParams];
+        currentPreset.modified = new Date().toISOString();
+
+        // Update simulation parameter set
+        this.simulation.parameterSets[this.currentPresetIndex] = new Float32Array(currentParams);
+
+        console.log(`Saved preset: ${currentPreset.title}`);
+      } catch (error) {
+        console.error('Failed to save preset:', error);
+      }
+    },
+    async saveAsNewPreset() {
+      if (!this.newPresetTitle.trim()) {
+        return;
+      }
+
+      try {
+        const currentParams = this.simulation.getCurrentParameters();
+        const newPreset = await this.presetDatabase.saveUserPreset(
+          this.newPresetTitle.trim(),
+          this.newPresetDescription.trim(),
+          currentParams
+        );
+
+        // Add to local presets list
+        this.availablePresets.push(newPreset);
+
+        // Add to simulation parameter sets
+        this.simulation.addParameterSet(currentParams);
+
+        // Select the new preset
+        this.currentPresetIndex = this.availablePresets.length - 1;
+        this.simulation.setPreset(this.currentPresetIndex);
+
+        this.cancelSaveAs();
+        console.log(`Created new preset: ${newPreset.title}`);
+      } catch (error) {
+        console.error('Failed to create new preset:', error);
+      }
+    },
+    cancelSaveAs() {
+      this.showSaveAsDialog = false;
+      this.newPresetTitle = '';
+      this.newPresetDescription = '';
+    },
+    async deletePreset(presetId) {
+      if (!confirm('Are you sure you want to delete this preset?')) {
+        return;
+      }
+
+      try {
+        await this.presetDatabase.deletePreset(presetId);
+
+        // Find and remove from local list
+        const index = this.availablePresets.findIndex(preset => preset.id === presetId);
+        if (index !== -1) {
+          this.availablePresets.splice(index, 1);
+
+          // Remove from simulation parameter sets
+          this.simulation.parameterSets.splice(index, 1);
+
+          // Adjust current preset index if necessary
+          if (this.currentPresetIndex >= index) {
+            this.currentPresetIndex = Math.max(0, this.currentPresetIndex - 1);
+          }
+
+          // Update simulation to current preset
+          if (this.availablePresets.length > 0) {
+            this.simulation.setPreset(this.currentPresetIndex);
+            this.updateCurrentParameters();
+          }
+        }
+
+        console.log('Preset deleted successfully');
+      } catch (error) {
+        console.error('Failed to delete preset:', error);
+      }
     }
   },
   watch: {
@@ -302,6 +470,16 @@ export default {
 .v-list-item--active {
   background: rgba(98, 0, 238, 0.3) !important;
   border: 1px solid rgba(98, 0, 238, 0.5);
+}
+
+.v-btn {
+  text-transform: none;
+}
+
+.v-dialog .v-card {
+  background: rgba(30, 30, 30, 0.95) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .parameter-control {
