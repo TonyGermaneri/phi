@@ -24,7 +24,7 @@
         @update:model-value="$emit('update:modelValue', $event)"
       ></v-switch>
     </div>
-    <div v-else class="slider-control ml-2">
+    <div v-else class="slider-control ml-2" @dblclick.stop="$emit('update:modelValue', defaultValue)">
       <div style="position: relative; left: calc(90% + 10px); top: 37px; height: 0;">
         {{ modelValue.toFixed(2) }}
       </div>
@@ -59,6 +59,7 @@ export default defineComponent({
     max: { type: Number, default: 100 },
     step: { type: Number, default: 0.1 },
     inputType: { type: String, default: 'slider' },
+    defaultValue: { type: Number, default: 0 },
     options: { type: Object, default: [] },
   },
   emits: ['update:modelValue']

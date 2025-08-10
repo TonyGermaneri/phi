@@ -556,6 +556,7 @@
           :min="control.min"
           :max="control.max"
           :step="control.step"
+          :default-value="control.default"
           :input-type="control.inputType || 'slider'"
           @update:model-value="updateParameter(control, $event)"
         />
