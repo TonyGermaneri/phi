@@ -11,6 +11,8 @@
     <div v-if="currentPreset" class="ml-4 text-caption text-medium-emphasis d-inline-block">
       {{ currentPreset.description }}
     </div>
+    <v-icon @click="randomizeAllParameters" :class="['randomize-icon']" title="Randomize all parameters">mdi-dice-multiple</v-icon>
+
 
     <v-tabs v-model="tabs">
       <v-tab v-for="tab in allTabs" :key="tab">{{ tab }}</v-tab>
@@ -848,12 +850,12 @@ export default {
   gap: 8px;
 }
 .drawer-icon {
-  transition: all 1s;
+  transition: all 0.25s;
   cursor: pointer;
 }
 .drawer-icon:hover {
   opacity: 1;
-  transition: all 1s;
+  transition: all 0.25s;
 }
 .randomize-icon {
   font-size: 1.2em;

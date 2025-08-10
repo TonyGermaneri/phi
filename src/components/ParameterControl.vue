@@ -25,7 +25,7 @@
       ></v-switch>
     </div>
     <div v-else class="slider-control ml-2">
-      <div style="position: relative; left: calc(70% + 10px); top: 37px; height: 0;">
+      <div style="position: relative; left: calc(90% + 10px); top: 37px; height: 0;">
         {{ modelValue.toFixed(2) }}
       </div>
       <v-slider
@@ -38,7 +38,7 @@
         :hint="description"
         persistent-hint
         class="pl-6 mt-2 d-inline-block ma-0"
-        style="width: 70%"
+        style="width: 90%"
         @update:model-value="$emit('update:modelValue', $event)"
       ></v-slider>
 

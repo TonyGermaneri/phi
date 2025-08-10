@@ -84,7 +84,7 @@ const controls = [
     title: 'Rotation Angle Exponent',
     description: 'Controls non-linear response to trail intensity for rotation',
     min: 0,
-    max: 5,
+    max: 10,
     step: 0.01,
     group: 'movement',
     index: 8
@@ -114,7 +114,7 @@ const controls = [
     title: 'Move Distance Exponent',
     description: 'Controls non-linear response to trail intensity for movement',
     min: 0,
-    max: 5,
+    max: 10,
     step: 0.01,
     group: 'movement',
     index: 11
@@ -214,7 +214,7 @@ const controls = [
     title: 'Hue Multiplier',
     description: 'How much trail intensity affects hue changes. Higher values create more color variation',
     min: 0,
-    max: 2,
+    max: 10,
     step: 0.01,
     group: 'color',
     index: 21
