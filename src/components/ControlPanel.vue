@@ -1,8 +1,56 @@
 <template>
   <div v-if="!drawer" class="control-icons">
     <v-icon @click="toggleDrawer" :class="drawerIconClass">mdi-cog</v-icon>
-    <v-icon @click="randomizeAllParameters" :class="[drawerIconClass, 'randomize-icon']" title="Randomize all parameters">mdi-dice-multiple</v-icon>
+    <v-icon @click="randomizeAllParameters" :class="[drawerIconClass, 'randomize-icon']" title="Randomize all parameters - (Shortcut: r)">mdi-dice-multiple</v-icon>
   </div>
+
+  <!-- Snackbar for keyboard action feedback -->
+  <v-snackbar
+    v-model="showSnackbar"
+    :timeout="2000"
+    location="bottom"
+    class="keyboard-feedback"
+  >
+    {{ snackbarMessage }}
+    <template v-slot:actions>
+      <v-btn
+        variant="text"
+        @click="showSnackbar = false"
+      >
+        Close
+      </v-btn>
+    </template>
+  </v-snackbar>
+
+  <!-- Help Dialog -->
+  <v-dialog v-model="showHelpDialog" max-width="600px" class="help-dialog">
+    <v-card class="help-dialog" style="background: transparent;">
+      <v-card-title class="d-flex align-center">
+        <v-icon class="mr-3">mdi-help-circle</v-icon>
+        Keyboard Shortcuts
+      </v-card-title>
+      <v-card-text>
+        <v-list class="help-shortcuts">
+          <v-list-item
+            v-for="shortcut in keyboardShortcuts"
+            :key="shortcut.key"
+          >
+            <template v-slot:prepend>
+              <v-chip
+                size="small"
+                variant="outlined"
+                :class="{'shortcut-key': true, 'pl-4': shortcut.key.length == 1}">{{ shortcut.key }}</v-chip>
+            </template>
+            <v-list-item-title>{{ shortcut.description }}</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn @click="showHelpDialog = false">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
   <v-navigation-drawer v-if="drawer" class="w-33">
     <v-icon class="float-right mr-2 mt-2" @click="toggleDrawer">mdi-chevron-double-left</v-icon>
     <h4 class="mx-4 mt-2">Physarum -
@@ -11,7 +59,7 @@
     <div v-if="currentPreset" class="ml-4 text-caption text-medium-emphasis d-inline-block">
       {{ currentPreset.description }}
     </div>
-    <v-icon @click="randomizeAllParameters" :class="['randomize-icon']" title="Randomize all parameters">mdi-dice-multiple</v-icon>
+    <v-icon @click="randomizeAllParameters" :class="['randomize-icon']" title="Randomize all parameters - (Shortcut: r)">mdi-dice-multiple</v-icon>
 
 
     <v-tabs v-model="tabs">
@@ -270,7 +318,25 @@ export default {
       presetToDelete: null,
       editingPresetId: null,
       editingField: null,
-      editingValue: ''
+      editingValue: '',
+      // Keyboard shortcuts related data
+      showHelpDialog: false,
+      showSnackbar: false,
+      snackbarMessage: '',
+      originalPresetParameters: {}, // Store original parameters for revert functionality
+      isPaused: false,
+      keyboardShortcuts: [
+        { key: 'H', description: 'Toggle Controls Panel' },
+        { key: '[', description: 'Previous Preset' },
+        { key: ']', description: 'Next Preset' },
+        { key: 'P', description: 'Pause/Resume Simulation' },
+        { key: '.', description: 'Step Forward (when paused)' },
+        { key: 'R', description: 'Randomize All Parameters' },
+        { key: 'SPACE', description: 'Toggle Fullscreen' },
+        { key: 'S', description: 'Save Current Preset' },
+        { key: 'L', description: 'Revert to Saved Preset' },
+        { key: '? or /', description: 'Show This Help' }
+      ]
     };
   },
   computed: {
@@ -281,7 +347,7 @@ export default {
       return [...new Set(this.simControls.map(control => control.group))];
     },
     allTabs() {
-      return ['presets', ...this.groups];
+      return ['Presets', ...this.groups];
     },
     groupControls() {
       return (group) => {
@@ -334,6 +400,134 @@ export default {
         }
       }
     },
+    // Keyboard shortcut methods
+    handleKeydown(event) {
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+
+      switch (key) {
+        case 'h':
+          if (event.shiftKey || event.metaKey || event.ctrlKey) {
+            this.showHelpDialog = !this.showHelpDialog;
+          } else {
+            this.toggleDrawer();
+          }
+          event.preventDefault();
+          break;
+        case '?':
+        case '/':
+          this.showHelpDialog = !this.showHelpDialog;
+          event.preventDefault();
+          break;
+        case '[':
+          this.previousPreset();
+          event.preventDefault();
+          break;
+        case ']':
+          this.nextPreset();
+          event.preventDefault();
+          break;
+        case 'p':
+          this.togglePause();
+          event.preventDefault();
+          break;
+        case '.':
+          this.stepForward();
+          event.preventDefault();
+          break;
+        case 'r':
+          this.randomizeAllParameters();
+          this.showMessage('Parameters randomized');
+          break;
+        case ' ':
+          this.toggleFullscreen();
+          event.preventDefault();
+          break;
+        case 's':
+          this.saveCurrentPresetKeyboard();
+          event.preventDefault();
+          break;
+        case 'l':
+          this.revertToSavedPreset();
+          event.preventDefault();
+          break;
+      }
+    },
+    showMessage(message) {
+      this.snackbarMessage = message;
+      this.showSnackbar = true;
+    },
+    previousPreset() {
+      if (this.availablePresets.length > 0) {
+        const newIndex = this.currentPresetIndex > 0
+          ? this.currentPresetIndex - 1
+          : this.availablePresets.length - 1;
+        this.selectPreset(newIndex);
+        this.showMessage(`Preset: ${this.availablePresets[newIndex].title}`);
+      }
+    },
+    nextPreset() {
+      if (this.availablePresets.length > 0) {
+        const newIndex = this.currentPresetIndex < this.availablePresets.length - 1
+          ? this.currentPresetIndex + 1
+          : 0;
+        this.selectPreset(newIndex);
+        this.showMessage(`Preset: ${this.availablePresets[newIndex].title}`);
+      }
+    },
+    togglePause() {
+      if (this.simulation && this.simulation.params) {
+        this.simulation.params.update = !this.simulation.params.update;
+        this.isPaused = !this.simulation.params.update;
+        this.showMessage(this.isPaused ? 'Simulation paused' : 'Simulation resumed');
+      }
+    },
+    stepForward() {
+      if (this.simulation && this.isPaused) {
+        // Draw one frame when paused
+        this.simulation.draw();
+        this.showMessage('Stepped forward one frame');
+      } else if (!this.isPaused) {
+        this.showMessage('Pause simulation first to step forward');
+      }
+    },
+    async saveCurrentPresetKeyboard() {
+      const currentPreset = this.availablePresets[this.currentPresetIndex];
+      if (!currentPreset) {
+        this.showMessage('No preset selected');
+        return;
+      }
+
+      if (currentPreset.isDefault) {
+        this.showMessage('Cannot save default preset');
+        return;
+      }
+
+      await this.saveCurrentPreset();
+      this.showMessage(`Saved preset: ${currentPreset.title}`);
+    },
+    async revertToSavedPreset() {
+      const currentPreset = this.availablePresets[this.currentPresetIndex];
+      if (!currentPreset) {
+        this.showMessage('No preset selected');
+        return;
+      }
+
+      if (currentPreset.parameters && Array.isArray(currentPreset.parameters)) {
+        // Revert to saved parameters
+        for (let i = 0; i < currentPreset.parameters.length; i++) {
+          if (currentPreset.parameters[i] !== undefined) {
+            this.simulation.updateParameter(i, currentPreset.parameters[i]);
+            this.currentParameters[i] = currentPreset.parameters[i];
+          }
+        }
+        this.showMessage(`Reverted to saved: ${currentPreset.title}`);
+      } else {
+        this.showMessage('No saved version to revert to');
+      }
+    },
     animate() {
       if (this.simulation.params.update) {
         this.simulation.draw();
@@ -368,6 +562,12 @@ export default {
         this.currentPresetIndex = index;
         this.simulation.setPreset(index);
         this.updateCurrentParameters();
+
+        // Store original parameters for revert functionality
+        const preset = this.availablePresets[index];
+        if (preset && preset.parameters) {
+          this.originalPresetParameters[preset.id] = [...preset.parameters];
+        }
       }
     },
     updateCurrentParameters() {
@@ -682,6 +882,9 @@ export default {
     // Initialize current parameters array
     this.updateCurrentParameters();
 
+    // Add keyboard event listener
+    document.addEventListener('keydown', this.handleKeydown);
+
     window.addEventListener("resize", this.simulation.resizeCanvas.bind(this.simulation));
     document.addEventListener("pointermove", this.simulation.mouseTouchMove.bind(this.simulation));
     document.addEventListener("mousemove", this.simulation.mouseTouchMove.bind(this.simulation));
@@ -698,7 +901,8 @@ export default {
 
   },
   beforeUnmount() {
-
+    // Remove keyboard event listener
+    document.removeEventListener('keydown', this.handleKeydown);
   }
 };
 </script>
@@ -718,7 +922,7 @@ export default {
   transition: transform 0.3s ease-in-out;
   backdrop-filter: blur(8px);
 }
-.delete-dialog div, .save-as div {
+.help-dialog div, .delete-dialog div, .save-as div {
   color: #ccc !important;
 }
 
@@ -864,4 +1068,35 @@ export default {
   color: #ff6b35 !important;
   transform: rotate(15deg);
 }
+
+/* Keyboard shortcuts styles */
+.help-dialog .v-card {
+  background: rgba(0, 0, 0, 0.9) !important;
+}
+
+.help-shortcuts .v-list-item {
+  margin-bottom: 4px;
+  padding: 8px 16px;
+  text-align: center;
+}
+
+.shortcut-key {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-weight: bold;
+  min-width: 40px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: #fff !important;
+}
+
+.keyboard-feedback .v-snackbar__wrapper {
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px);
+}
+
+.keyboard-feedback .v-snackbar__content {
+  color: #fff !important;
+}
+
 </style>
