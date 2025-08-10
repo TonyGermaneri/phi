@@ -235,8 +235,8 @@
             <v-slider
               v-model="presetDurationControl"
               :min="1"
-              :max="30"
-              :step="0.5"
+              :max="120"
+              :step="0.1"
               thumb-label
               track-color="rgba(255, 255, 255, 0.2)"
               color="accent"
@@ -717,7 +717,7 @@ export default {
       showMobileActions: null, // Track which preset's mobile actions are expanded
       // Randomization settings
       randomizeDeviation: 10, // Default 10% deviation
-      excludedFromRandomization: [24, 25, 26, 27, 28, 29], // lightness base/multiplier, contrast base/multiplier, chromatic aberration strength/offset
+      excludedFromRandomization: [24, 25, 26, 27, 28, 29, 31], // lightness base/multiplier, contrast base/multiplier, chromatic aberration strength/offset, invert
       // Playlist functionality
       isPlaylistPlaying: false,
       isLooping: false,
@@ -727,7 +727,7 @@ export default {
       shuffleOrder: [],
       shuffleIndex: 0,
       convergenceRateControl: 0.05, // Control for simulation convergence rate
-      presetDurationControl: 3, // Control for how long each preset stays active (in seconds)
+      presetDurationControl: 10, // Control for how long each preset stays active (in seconds)
       // Progress tracking
       playlistProgress: 0, // 0-100 representing progress through current preset
       convergenceProgress: 0, // 0-100 representing convergence to target preset

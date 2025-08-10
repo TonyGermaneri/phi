@@ -1,6 +1,6 @@
 <template>
   <div class="parameter-control">
-    <v-divider class="my-4"></v-divider>
+    <v-divider class="my-0"></v-divider>
     <!-- Switch input for boolean values -->
     <div v-if="inputType === 'select'" class="switch-control ml-2">
       <v-select
@@ -14,7 +14,7 @@
       >
       </v-select>
     </div>
-    <div v-else-if="inputType === 'switch'" class="switch-control ml-2">
+    <div v-else-if="inputType === 'switch'" class="switch-control ml-7">
       <v-switch
         :model-value="modelValue"
         :label="title"
@@ -25,16 +25,13 @@
       ></v-switch>
     </div>
     <div v-else class="slider-control ml-2" @dblclick.stop="$emit('update:modelValue', defaultValue)">
-      <div style="position: relative; left: calc(90% + 10px); top: 37px; height: 0;">
-        {{ modelValue.toFixed(2) }}
-      </div>
       <v-slider
         :model-value="modelValue"
         :min="min"
         :max="max"
         :step="step"
         thumb-label
-        :label="title"
+        :label="title + ': ' + modelValue.toFixed(2)"
         :hint="description"
         persistent-hint
         class="pl-6 mt-2 d-inline-block ma-0"

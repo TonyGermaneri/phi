@@ -344,7 +344,7 @@ const controls = [
     name: 'invert',
     title: 'Invert',
     description: 'Size of individual particle points when rendered',
-    group: 'visual',
+    group: 'color',
     inputType: 'switch',
     default: 0.00,
     index: 31
