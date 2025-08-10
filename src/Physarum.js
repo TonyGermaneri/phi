@@ -178,7 +178,6 @@ uniform float[${this.parameterCount}] v;
 uniform float[8] mps;
 uniform int frame;
 uniform int mouseButton;
-//uniform float mouseStrength;
 
 vec2 bd(vec2 pos) {
   pos *= .5;
@@ -228,7 +227,7 @@ void main() {
   const float segmentPop = 0.005;
   if (i_A < segmentPop && mouseButton == 1){
     op=2.*cr(i_A/segmentPop)-vec2(1.);
-    op+= nd*pow(gn(i_P*132.43,i_T), 1.8);
+    op+= nd*pow(gn(i_P*132.43,i_T), 1.2);
   }
   v_P = bd(op);
   v_A= fract(i_A+segmentPop);
@@ -454,7 +453,7 @@ void main() {
   float aberrationOffset = v[29];
 
   // Calculate chromatic aberration effect
-  vec2 center = vec2(0.5, 0.5);
+  vec2 center = vec2(1, 0.5);
   vec2 direction = vTexCoord - center;
   float distance = length(direction);
 
@@ -616,7 +615,6 @@ void main() {
       this.mousePositions[i] = this.mousePositions[i - 2];
     }
     this.gl.uniform1i(this.gl.getUniformLocation(this.updateParticles, "mouseButton"), this.params.mouse.button);
-    this.gl.uniform1f(this.gl.getUniformLocation(this.updateParticles, "mouseStrength"), this.params.mouse.strength);
     this.gl.uniform1fv(this.gl.getUniformLocation(this.updateParticles, "mps"), this.mousePositions);
     this.gl.uniform1i(this.gl.getUniformLocation(this.updateParticles, "frame"), this.frame);
     this.gl.uniform1i(this.gl.getUniformLocation(this.updateParticles, "pen"), this.isInterpolating);
