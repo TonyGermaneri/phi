@@ -95,7 +95,7 @@ void main() {
   setPreset(index) {
     this.currentPresetIndex = index;
     this.params.pastParams = this.lerpParams;
-    this.lerpTime = 0;
+    this.params.lerpTime = 0;
     this.params.currentParams = this.parameterSets[this.currentPresetIndex];
   }
 
