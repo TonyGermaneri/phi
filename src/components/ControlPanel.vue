@@ -1,7 +1,7 @@
 <template>
   <div v-show="drawer">
     <v-navigation-drawer permanent width="33%">
-      <h4 class="mx-4">Physarum -
+      <h4 class="mx-4 mt-2">Physarum -
         <span v-if="currentPreset">{{ currentPreset.title }}</span>
       </h4>
       <div v-if="currentPreset" class="ml-4 text-caption text-medium-emphasis">
@@ -197,23 +197,6 @@
             @update:model-value="updateParameter(control, $event)"
           />
         </v-tabs-window-item>
-
-        <!-- System controls tab -->
-        <v-tabs-window-item key="System">
-          <ParameterControl
-            v-for="control in systemControls"
-            :key="control.name"
-            :model-value="getSystemParameterValue(control)"
-            :title="control.title"
-            :description="control.description"
-            :min="control.min"
-            :max="control.max"
-            :step="control.step"
-            :input-type="control.inputType || 'slider'"
-            @update:model-value="updateSystemParameter(control, $event)"
-          />
-        </v-tabs-window-item>
-
       </v-tabs-window>
     </v-navigation-drawer>
   </div>
@@ -260,7 +243,7 @@ export default {
       return [...new Set(this.simControls.map(control => control.group))];
     },
     allTabs() {
-      return ['Presets', ...this.groups, 'System'];
+      return ['presets', ...this.groups];
     },
     groupControls() {
       return (group) => {

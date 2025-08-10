@@ -2,7 +2,20 @@
   <div class="parameter-control">
     <v-divider class="my-4"></v-divider>
     <!-- Switch input for boolean values -->
-    <div v-if="inputType === 'switch'" class="switch-control ml-2">
+    <div v-if="inputType === 'select'" class="switch-control ml-2">
+      <v-select
+        :model-value="modelValue"
+        :label="title"
+        :hint="description"
+        :items="options"
+        persistent-hint
+        color="primary"
+        @update:model-value="$emit('update:modelValue', $event)"
+      >
+
+      </v-select>
+    </div>
+    <div v-else-if="inputType === 'switch'" class="switch-control ml-2">
       <v-switch
         :model-value="modelValue"
         :label="title"
@@ -53,7 +66,8 @@ export default defineComponent({
     min: { type: Number, default: 0 },
     max: { type: Number, default: 100 },
     step: { type: Number, default: 0.1 },
-    inputType: { type: String, default: 'slider' }
+    inputType: { type: String, default: 'slider' },
+    options: { type: Object, default: [] },
   },
   emits: ['update:modelValue']
 });
