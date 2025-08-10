@@ -160,25 +160,116 @@
       <!-- Presets tab -->
       <v-tabs-window-item key="presets">
         <div class="mt-4">
-          <!-- Randomization Deviation Slider -->
-
+          <!-- Playlist Controls -->
+          <div class="playlist-controls mb-4">
+            <div class="d-flex align-center mb-2">
+              <v-btn
+                icon
+                size="small"
+                @click="togglePlaylist"
+                :color="isPlaylistPlaying ? 'primary' : 'default'"
+                class="mr-2"
+                :title="isPlaylistPlaying ? 'Pause Playlist' : 'Play Playlist'"
+              >
+                <v-icon>{{ isPlaylistPlaying ? 'mdi-pause' : 'mdi-play' }}</v-icon>
+              </v-btn>
+              <v-btn
+                icon
+                size="small"
+                @click="previousPresetPlaylist"
+                class="mr-2"
+                title="Previous Preset"
+              >
+                <v-icon>mdi-skip-previous</v-icon>
+              </v-btn>
+              <v-btn
+                icon
+                size="small"
+                @click="nextPresetPlaylist"
+                class="mr-2"
+                title="Next Preset"
+              >
+                <v-icon>mdi-skip-next</v-icon>
+              </v-btn>
+              <v-btn
+                icon
+                size="small"
+                @click="toggleLoop"
+                :color="isLooping ? 'primary' : 'default'"
+                class="mr-2"
+                title="Toggle Loop"
+              >
+                <v-icon>mdi-repeat</v-icon>
+              </v-btn>
+              <v-btn
+                icon
+                size="small"
+                @click="toggleShuffle"
+                :color="isShuffling ? 'primary' : 'default'"
+                title="Toggle Shuffle"
+              >
+                <v-icon>mdi-shuffle</v-icon>
+              </v-btn>
+            </div>
+            <!-- Convergence Rate Slider -->
             <v-slider
-              v-model="randomizeDeviation"
-              :min="5"
-              :max="100"
-              :step="1"
+              v-model="convergenceRateControl"
+              :min="0.001"
+              :max="0.1"
+              :step="0.001"
               thumb-label
               track-color="rgba(255, 255, 255, 0.2)"
-              color="primary"
-              class="randomize-deviation-slider"
+              color="secondary"
+              class="convergence-rate-slider"
+              @update:model-value="updateConvergenceRate"
             >
               <template v-slot:prepend>
-                <span class="text-caption">{{ randomizeDeviation }}%</span>
+                <span class="text-caption">Convergence</span>
               </template>
               <template v-slot:append>
-                <v-icon @click="randomizeAllParameters" :class="['randomize-icon']" title="Randomize parameters by deviation % - (Shortcut: r)">mdi-dice-multiple</v-icon>
+                <span class="text-caption">{{ convergenceRateControl }}</span>
               </template>
             </v-slider>
+
+            <!-- Preset Duration Slider -->
+            <v-slider
+              v-model="presetDurationControl"
+              :min="1"
+              :max="30"
+              :step="0.5"
+              thumb-label
+              track-color="rgba(255, 255, 255, 0.2)"
+              color="accent"
+              class="preset-duration-slider"
+              @update:model-value="updatePresetDuration"
+            >
+              <template v-slot:prepend>
+                <span class="text-caption">Preset Time</span>
+              </template>
+              <template v-slot:append>
+                <span class="text-caption">{{ presetDurationControl }}s</span>
+              </template>
+            </v-slider>
+          </div>
+
+          <!-- Randomization Deviation Slider -->
+          <v-slider
+            v-model="randomizeDeviation"
+            :min="5"
+            :max="100"
+            :step="1"
+            thumb-label
+            track-color="rgba(255, 255, 255, 0.2)"
+            color="primary"
+            class="randomize-deviation-slider"
+          >
+            <template v-slot:prepend>
+              <span class="text-caption">{{ randomizeDeviation }}%</span>
+            </template>
+            <template v-slot:append>
+              <v-icon @click="randomizeAllParameters" :class="['randomize-icon']" title="Randomize parameters by deviation % - (Shortcut: r)">mdi-dice-multiple</v-icon>
+            </template>
+          </v-slider>
 
           <v-btn
             color="primary"
@@ -221,12 +312,12 @@
           <v-list-item
             v-for="(preset, index) in availablePresets"
             :key="preset.id || index"
-            :class="{ 'v-list-item--active': currentPresetIndex === index }"
+            :class="{ 'v-list-item--active': currentPresetIndex === index, 'ma-0': true, 'pa-0': true }"
             @click="selectPreset(index)"
           >
             <!-- Desktop Layout -->
-            <div v-if="!isMobileDevice" class="desktop-preset-layout">
-              <div class="d-flex">
+            <div v-if="!isMobileDevice" class="desktop-preset-layout" :style="getPresetItemStyle(index)">
+              <div class="d-flex" :style="getPresetItemConvergenceStyle(index)">
                 <div class="d-flex flex-column mr-2 preset-order-controls">
                   <v-tooltip text="Move up" location="left">
                     <template v-slot:activator="{ props }">
@@ -627,6 +718,20 @@ export default {
       // Randomization settings
       randomizeDeviation: 10, // Default 10% deviation
       excludedFromRandomization: [24, 25, 26, 27, 28, 29], // lightness base/multiplier, contrast base/multiplier, chromatic aberration strength/offset
+      // Playlist functionality
+      isPlaylistPlaying: false,
+      isLooping: false,
+      isShuffling: false,
+      playlistInterval: null,
+      playlistSpeed: 3000, // milliseconds between presets
+      shuffleOrder: [],
+      shuffleIndex: 0,
+      convergenceRateControl: 0.05, // Control for simulation convergence rate
+      presetDurationControl: 3, // Control for how long each preset stays active (in seconds)
+      // Progress tracking
+      playlistProgress: 0, // 0-100 representing progress through current preset
+      convergenceProgress: 0, // 0-100 representing convergence to target preset
+      progressInterval: null, // For updating progress indicators
       keyboardShortcuts: [
         { key: 'H', description: 'Toggle Controls Panel' },
         { key: '[', description: 'Previous Preset' },
@@ -637,6 +742,9 @@ export default {
         { key: 'SPACE', description: 'Toggle Fullscreen' },
         { key: 'S', description: 'Save Current Preset' },
         { key: 'L', description: 'Revert to Saved Preset' },
+        { key: 'ENTER', description: 'Play/Pause Playlist' },
+        { key: 'SHIFT+L', description: 'Toggle Loop' },
+        { key: 'SHIFT+S', description: 'Toggle Shuffle' },
         { key: '? or /', description: 'Show This Help' }
       ]
     };
@@ -667,6 +775,165 @@ export default {
     },
     toggleMobileActions(presetId) {
       this.showMobileActions = this.showMobileActions === presetId ? null : presetId;
+    },
+    // Playlist control methods
+    togglePlaylist() {
+      if (this.isPlaylistPlaying) {
+        this.stopPlaylist();
+      } else {
+        this.startPlaylist();
+      }
+    },
+    startPlaylist() {
+      this.isPlaylistPlaying = true;
+      if (this.isShuffling && this.shuffleOrder.length === 0) {
+        this.generateShuffleOrder();
+      }
+      this.playlistInterval = setInterval(() => {
+        this.nextPresetPlaylist();
+      }, this.playlistSpeed);
+      this.startProgressTracking();
+      this.showMessage('Playlist started');
+    },
+    stopPlaylist() {
+      this.isPlaylistPlaying = false;
+      if (this.playlistInterval) {
+        clearInterval(this.playlistInterval);
+        this.playlistInterval = null;
+      }
+      this.playlistProgress = 0; // Reset playlist progress but keep convergence tracking
+      this.showMessage('Playlist stopped');
+    },
+    nextPresetPlaylist() {
+      if (this.availablePresets.length === 0) return;
+
+      let nextIndex;
+      if (this.isShuffling) {
+        this.shuffleIndex = (this.shuffleIndex + 1) % this.shuffleOrder.length;
+        if (this.shuffleIndex === 0 && !this.isLooping) {
+          this.stopPlaylist();
+          return;
+        }
+        nextIndex = this.shuffleOrder[this.shuffleIndex];
+      } else {
+        nextIndex = this.currentPresetIndex + 1;
+        if (nextIndex >= this.availablePresets.length) {
+          if (this.isLooping) {
+            nextIndex = 0;
+          } else {
+            this.stopPlaylist();
+            return;
+          }
+        }
+      }
+
+      this.selectPreset(nextIndex);
+      this.playlistProgress = 0; // Reset progress for new preset
+    },
+    previousPresetPlaylist() {
+      if (this.availablePresets.length === 0) return;
+
+      let prevIndex;
+      if (this.isShuffling) {
+        this.shuffleIndex = this.shuffleIndex > 0 ? this.shuffleIndex - 1 : this.shuffleOrder.length - 1;
+        prevIndex = this.shuffleOrder[this.shuffleIndex];
+      } else {
+        prevIndex = this.currentPresetIndex - 1;
+        if (prevIndex < 0) {
+          prevIndex = this.isLooping ? this.availablePresets.length - 1 : 0;
+        }
+      }
+
+      this.selectPreset(prevIndex);
+    },
+    toggleLoop() {
+      this.isLooping = !this.isLooping;
+      this.showMessage(this.isLooping ? 'Loop enabled' : 'Loop disabled');
+    },
+    toggleShuffle() {
+      this.isShuffling = !this.isShuffling;
+      if (this.isShuffling) {
+        this.generateShuffleOrder();
+        this.showMessage('Shuffle enabled');
+      } else {
+        this.shuffleOrder = [];
+        this.shuffleIndex = 0;
+        this.showMessage('Shuffle disabled');
+      }
+    },
+    generateShuffleOrder() {
+      this.shuffleOrder = Array.from({ length: this.availablePresets.length }, (_, i) => i);
+      // Fisher-Yates shuffle
+      for (let i = this.shuffleOrder.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [this.shuffleOrder[i], this.shuffleOrder[j]] = [this.shuffleOrder[j], this.shuffleOrder[i]];
+      }
+      // Find current preset in shuffle order
+      this.shuffleIndex = this.shuffleOrder.indexOf(this.currentPresetIndex);
+    },
+    updateConvergenceRate(value) {
+      if (this.simulation && this.simulation.params) {
+        this.simulation.params.convergenceRate = value;
+      }
+    },
+    updatePresetDuration(value) {
+      this.playlistSpeed = value * 1000; // Convert seconds to milliseconds
+      // If playlist is currently playing, restart the interval with new timing
+      if (this.isPlaylistPlaying) {
+        this.stopPlaylist();
+        this.startPlaylist();
+      }
+    },
+    // Progress tracking methods
+    getPresetItemStyle(index) {
+      if (!this.isPlaylistPlaying || this.currentPresetIndex !== index) {
+        return {};
+      }
+      // Create a vertical gradient showing playlist progress
+      const progress = this.playlistProgress;
+      return {
+        background: `linear-gradient(to bottom,
+          rgba(0, 0, 238, 0.4) 0%,
+          rgba(0, 0, 238, 0.4) ${progress}%,
+          rgba(255, 255, 255, 0.05) ${progress}%,
+          rgba(255, 255, 255, 0.05) 100%)`
+      };
+    },
+    // Progress tracking methods
+    getPresetItemConvergenceStyle(index) {
+      // Create a horizontal gradient showing convergence progress
+      if (this.currentPresetIndex != index) {
+        return {};
+      }
+      const progress = this.convergenceProgress;
+      return {
+        background: `linear-gradient(to right,
+          rgba(150, 0, 150, 0.5) 0%,
+          rgba(150, 0, 150, 0.5) ${progress}%,
+          rgba(255, 255, 255, 0.05) ${progress}%,
+          rgba(255, 255, 255, 0.05) 100%)`
+      };
+    },
+    startProgressTracking() {
+      this.playlistProgress = 0;
+      // Create interval only for playlist progress (time-based)
+      if (!this.progressInterval) {
+        this.progressInterval = setInterval(() => {
+          if (this.isPlaylistPlaying) {
+            this.playlistProgress += (100 / (this.playlistSpeed / 50));
+            if (this.playlistProgress >= 100) {
+              this.playlistProgress = 0;
+            }
+          }
+        }, 50); // Update every 50ms for smooth playlist animation
+      }
+    },
+    stopProgressTracking() {
+      if (this.progressInterval) {
+        clearInterval(this.progressInterval);
+        this.progressInterval = null;
+      }
+      this.playlistProgress = 0;
     },
     toggleFullscreen() {
       if (this.isFullscreen) {
@@ -746,11 +1013,19 @@ export default {
           event.preventDefault();
           break;
         case '[':
-          this.previousPreset();
+          if (this.isPlaylistPlaying) {
+            this.previousPresetPlaylist();
+          } else {
+            this.previousPreset();
+          }
           event.preventDefault();
           break;
         case ']':
-          this.nextPreset();
+          if (this.isPlaylistPlaying) {
+            this.nextPresetPlaylist();
+          } else {
+            this.nextPreset();
+          }
           event.preventDefault();
           break;
         case 'p':
@@ -773,11 +1048,23 @@ export default {
           event.preventDefault();
           break;
         case 's':
-          this.saveCurrentPresetKeyboard();
+          if (event.shiftKey) {
+            this.toggleShuffle();
+          } else {
+            this.saveCurrentPresetKeyboard();
+          }
           event.preventDefault();
           break;
         case 'l':
-          this.revertToSavedPreset();
+          if (event.shiftKey) {
+            this.toggleLoop();
+          } else {
+            this.revertToSavedPreset();
+          }
+          event.preventDefault();
+          break;
+        case 'enter':
+          this.togglePlaylist();
           event.preventDefault();
           break;
       }
@@ -852,6 +1139,7 @@ export default {
     animate() {
       if (this.simulation.params.update) {
         this.simulation.draw();
+        this.convergenceProgress = this.simulation.params.lerpTime * 100;
       }
       requestAnimationFrame(this.animate);
     },
@@ -883,6 +1171,12 @@ export default {
         this.currentPresetIndex = index;
         this.simulation.setPreset(index);
         this.updateCurrentParameters();
+
+        // Reset progress indicators when manually changing presets
+        if (this.isPlaylistPlaying) {
+          this.playlistProgress = 0;
+        }
+        this.convergenceProgress = 0;
 
         // Store original parameters for revert functionality
         const preset = this.availablePresets[index];
@@ -1316,9 +1610,21 @@ export default {
       },
       deep: true
     },
+    // Sync convergence rate control with simulation
+    'simulation.params.convergenceRate': {
+      handler(newConvergenceRate) {
+        if (newConvergenceRate !== undefined && newConvergenceRate !== this.convergenceRateControl) {
+          this.convergenceRateControl = newConvergenceRate;
+        }
+      }
+    },
     // Cancel editing when clicking on a different preset
     currentPresetIndex() {
       this.cancelEdit();
+      // Update shuffle index if shuffling
+      if (this.isShuffling && this.shuffleOrder.length > 0) {
+        this.shuffleIndex = this.shuffleOrder.indexOf(this.currentPresetIndex);
+      }
     }
   },
   async mounted() {
@@ -1336,6 +1642,11 @@ export default {
 
     // Initialize current parameters array
     this.updateCurrentParameters();
+
+    // Initialize convergence rate control with simulation's initial value
+    if (this.simulation && this.simulation.params) {
+      this.convergenceRateControl = this.simulation.params.convergenceRate;
+    }
 
     // Add keyboard event listener
     document.addEventListener('keydown', this.handleKeydown);
@@ -1364,6 +1675,15 @@ export default {
 
   },
   beforeUnmount() {
+    // Stop playlist
+    this.stopPlaylist();
+
+    // Stop progress tracking
+    if (this.progressInterval) {
+      clearInterval(this.progressInterval);
+      this.progressInterval = null;
+    }
+
     // Remove keyboard event listener
     document.removeEventListener('keydown', this.handleKeydown);
 
@@ -1752,6 +2072,81 @@ export default {
 
 .randomize-deviation-slider .v-slider-thumb {
   background: #bb86fc !important;
+}
+
+/* Playlist controls styles */
+.playlist-controls {
+  border: 1px solid rgba(98, 0, 238, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(98, 0, 238, 0.1);
+}
+
+.playlist-controls .v-btn {
+  transition: all 0.2s ease;
+}
+
+.playlist-controls .v-btn:hover {
+  transform: scale(1.05);
+}
+
+.lerp-time-slider {
+  margin: 8px 0 0 0 !important;
+}
+
+.lerp-time-slider .v-slider-track__fill {
+  background: linear-gradient(90deg, #ff6b35, #f7931e) !important;
+}
+
+.lerp-time-slider .v-slider-thumb {
+  background: #f7931e !important;
+}
+
+.convergence-rate-slider {
+  margin: 8px 0 0 0 !important;
+}
+
+.convergence-rate-slider .v-slider-track__fill {
+  background: linear-gradient(90deg, #ff6b35, #f7931e) !important;
+}
+
+.convergence-rate-slider .v-slider-thumb {
+  background: #f7931e !important;
+}
+
+.preset-duration-slider {
+  margin: 4px 0 0 0 !important;
+}
+
+.preset-duration-slider .v-slider-track__fill {
+  background: linear-gradient(90deg, #4caf50, #8bc34a) !important;
+}
+
+.preset-duration-slider .v-slider-thumb {
+  background: #4caf50 !important;
+}
+
+/* Progress indicators styles */
+.convergence-progress {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.convergence-progress .v-progress-linear {
+  border-radius: 3px;
+}
+
+/* Enhanced preset list item styles for progress tracking */
+.v-list-item {
+  transition: background 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.v-list-item--active {
+  border: 0px solid rgba(98, 0, 238, 0.5) !important;
 }
 
 </style>

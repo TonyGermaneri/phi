@@ -24,7 +24,7 @@ void main() {
       numParticles: -1,
       displayParticles: true,
       canvasZoom: 1,
-      convergenceRate: 0.15,
+      convergenceRate: 0.05,
       name: "params",
       update: true,
       pastParams: this.parameterSets[this.currentPresetIndex],
@@ -770,10 +770,11 @@ void main() {
 
   draw() {
     window.dispatchEvent(new Event("Physarum:draw", {detail: this}));
-    // Update interpolation between parameter sets
-    this.params.lerpTime = Math.min(1, this.params.lerpTime + Math.max((1 - this.params.lerpTime) * this.params.convergenceRate, 0.001));
+    // Linear convergence
+    this.params.lerpTime = Math.min(1, this.params.lerpTime + this.params.convergenceRate);
+    // Expo convergence
+    // this.params.lerpTime = Math.min(1, this.params.lerpTime + Math.max((1 - this.params.lerpTime) * this.params.convergenceRate, 0.0001));
     this.lerpParams = this.interpolateParameters(this.params.pastParams, this.params.currentParams, this.params.lerpTime);
-
     // Execute rendering pipeline
     this.updateParticlesHelper();
     this.depositParticlesHelper();
