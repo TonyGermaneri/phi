@@ -929,6 +929,7 @@ void main() {
   }
 
   touchStart(e) {
+    console.log("touch start");
     if (e.target !== document.getElementById("canvas")) {
       return;
     }

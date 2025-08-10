@@ -140,16 +140,20 @@
     </v-card>
   </v-dialog>
 
-  <v-navigation-drawer v-if="drawer" class="w-33">
-    <v-icon class="float-right mr-2 mt-2" @click="toggleDrawer">mdi-chevron-double-left</v-icon>
-    <h4 class="mx-4 mt-2">Physarum -
-      <span v-if="currentPreset">{{ currentPreset.title }}</span>
-    </h4>
-    <div v-if="currentPreset" class="ml-4 text-caption text-medium-emphasis d-inline-block">
-      {{ currentPreset.description }}
+  <v-navigation-drawer v-if="isMobileDevice || drawer" :class="{'w-33': !isMobileDevice}" :location="isMobileDevice ? 'bottom' : 'left'">
+    <div v-if="!isMobileDevice">
+      <v-icon class="float-right mr-2 mt-2" @click="toggleDrawer">mdi-chevron-double-left</v-icon>
+      <h4 class="mx-4 mt-2">Physarum -
+        <span v-if="currentPreset">{{ currentPreset.title }}</span>
+      </h4>
+      <div v-if="currentPreset" class="ml-4 text-caption text-medium-emphasis d-inline-block">
+        {{ currentPreset.description }}
+      </div>
+      <v-spacer></v-spacer>
+      <v-icon @click="showHelpDialog = !showHelpDialog" :class="['help-icon', 'float-right', 'mr-3']" title="Help - (Shortcut: ?)">mdi-help-box-outline</v-icon>
+      <v-icon @click="randomizeAllParameters" :class="['randomize-icon', 'float-right', 'mr-3']" title="Randomize all parameters - (Shortcut: r)">mdi-dice-multiple</v-icon>
+      <v-spacer></v-spacer>
     </div>
-    <v-icon @click="showHelpDialog = !showHelpDialog" :class="['help-icon', 'float-right', 'mr-3']" title="Help - (Shortcut: ?)">mdi-help-box-outline</v-icon>
-    <v-icon @click="randomizeAllParameters" :class="['randomize-icon', 'float-right', 'mr-3']" title="Randomize all parameters - (Shortcut: r)">mdi-dice-multiple</v-icon>
     <v-tabs v-model="tabs">
       <v-tab v-for="tab in allTabs" :key="tab">{{ tab }}</v-tab>
     </v-tabs>
@@ -201,129 +205,222 @@
             :class="{ 'v-list-item--active': currentPresetIndex === index }"
             @click="selectPreset(index)"
           >
-            <template v-slot:prepend>
-              <div class="d-flex flex-column mr-2 preset-order-controls">
-                <v-tooltip text="Move up" location="left">
-                  <template v-slot:activator="{ props }">
+            <!-- Desktop Layout -->
+            <div v-if="!isMobileDevice" class="desktop-preset-layout">
+              <div class="d-flex">
+                <div class="d-flex flex-column mr-2 preset-order-controls">
+                  <v-tooltip text="Move up" location="left">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        icon
+                        size="x-small"
+                        variant="text"
+                        @click.stop="movePresetUp(preset.id, index)"
+                        :disabled="index === 0"
+                        class="mb-1"
+                      >
+                        <v-icon size="small">mdi-chevron-up</v-icon>
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+                  <v-tooltip text="Move down" location="left">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        icon
+                        size="x-small"
+                        variant="text"
+                        @click.stop="movePresetDown(preset.id, index)"
+                        :disabled="index === availablePresets.length - 1"
+                      >
+                        <v-icon size="small">mdi-chevron-down</v-icon>
+                      </v-btn>
+                    </template>
+                  </v-tooltip>
+                </div>
+
+                <div class="flex-grow-1">
+                  <!-- Editable title -->
+                  <div class="preset-title-container">
+                    <v-text-field
+                      v-if="editingPresetId === preset.id && editingField === 'title'"
+                      v-model="editingValue"
+                      density="compact"
+                      hide-details
+                      autofocus
+                      @blur="saveEdit(preset)"
+                      @keyup.enter="saveEdit(preset)"
+                      @keyup.escape="cancelEdit()"
+                      class="preset-edit-field"
+                    ></v-text-field>
+                    <span
+                      v-else
+                      @click.stop="startEdit(preset, 'title')"
+                      class="preset-editable-text preset-title"
+                      title="Click to edit title"
+                    >
+                      {{ preset.title  }}
+                    </span>
+                  </div>
+
+                  <!-- Editable description -->
+                  <div v-if="preset.description || (editingPresetId === preset.id && editingField === 'description')" class="preset-description-container">
+                    <v-text-field
+                      v-if="editingPresetId === preset.id && editingField === 'description'"
+                      v-model="editingValue"
+                      density="compact"
+                      hide-details
+                      rows="2"
+                      autofocus
+                      @blur="saveEdit(preset)"
+                      @keyup.ctrl.enter="saveEdit(preset)"
+                      @keyup.escape="cancelEdit()"
+                      class="preset-edit-field"
+                    ></v-text-field>
+                    <span
+                      v-else
+                      @click.stop="startEdit(preset, 'description')"
+                      class="preset-editable-text preset-subtitle"
+                      :title="preset.isDefault ? 'Default presets cannot be edited' : 'Click to edit description'"
+                    >
+                      {{ preset.description }}
+                      <v-icon v-if="!preset.isDefault" size="small" class="edit-icon">mdi-pencil</v-icon>
+                    </span>
+                  </div>
+
+                  <!-- Add description option for presets without one -->
+                  <div v-else-if="!preset.isDefault" class="preset-description-container">
+                    <span
+                      @click.stop="startEdit(preset, 'description')"
+                      class="preset-add-description"
+                      title="Click to add description"
+                    >
+                      <v-icon size="small" class="mr-1">mdi-plus</v-icon>
+                      Add description...
+                    </span>
+                  </div>
+                </div>
+
+                <div class="desktop-action-buttons">
+                  <v-btn
+                    icon
+                    size="small"
+                    @click.stop="downloadPreset(preset)"
+                    class="ml-2"
+                    title="Download preset"
+                  >
+                    <v-icon size="small">mdi-download</v-icon>
+                  </v-btn>
+                  <v-btn
+                    icon
+                    size="small"
+                    @click.stop="duplicatePreset(preset)"
+                    class="ml-2"
+                    title="Duplicate preset"
+                  >
+                    <v-icon size="small">mdi-content-copy</v-icon>
+                  </v-btn>
+                  <v-btn
+                    v-if="!preset.isDefault"
+                    icon
+                    size="small"
+                    @click.stop="showDeleteConfirmation(preset)"
+                    class="ml-2"
+                    title="Delete preset"
+                  >
+                    <v-icon size="small">mdi-delete</v-icon>
+                  </v-btn>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mobile Layout -->
+            <div v-else class="mobile-preset-item" @click.stop>
+              <div class="mobile-preset-header" @click="selectPreset(index)">
+                <div class="mobile-preset-info">
+                  <div class="mobile-preset-title">{{ preset.title }}</div>
+                  <div v-if="preset.description" class="mobile-preset-description">{{ preset.description }}</div>
+                </div>
+                <v-btn
+                  icon
+                  size="small"
+                  @click.stop="toggleMobileActions(preset.id)"
+                  class="mobile-actions-toggle"
+                >
+                  <v-icon>{{ showMobileActions === preset.id ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+                </v-btn>
+              </div>
+
+              <!-- Mobile Actions Panel -->
+              <v-expand-transition>
+                <div v-if="showMobileActions === preset.id" class="mobile-actions-panel">
+                  <div class="mobile-action-row">
                     <v-btn
-                      v-bind="props"
-                      icon
-                      size="x-small"
                       variant="text"
+                      size="small"
                       @click.stop="movePresetUp(preset.id, index)"
                       :disabled="index === 0"
-                      class="mb-1"
+                      class="mobile-action-btn"
                     >
-                      <v-icon size="small">mdi-chevron-up</v-icon>
+                      <v-icon left size="small">mdi-chevron-up</v-icon>
+                      Move Up
                     </v-btn>
-                  </template>
-                </v-tooltip>
-                <v-tooltip text="Move down" location="left">
-                  <template v-slot:activator="{ props }">
                     <v-btn
-                      v-bind="props"
-                      icon
-                      size="x-small"
                       variant="text"
+                      size="small"
                       @click.stop="movePresetDown(preset.id, index)"
                       :disabled="index === availablePresets.length - 1"
+                      class="mobile-action-btn"
                     >
-                      <v-icon size="small">mdi-chevron-down</v-icon>
+                      <v-icon left size="small">mdi-chevron-down</v-icon>
+                      Move Down
                     </v-btn>
-                  </template>
-                </v-tooltip>
-              </div>
-            </template>
-
-            <!-- Editable title -->
-            <v-list-item-title class="preset-title-container">
-              <v-text-field
-                v-if="editingPresetId === preset.id && editingField === 'title'"
-                v-model="editingValue"
-                density="compact"
-                hide-details
-                autofocus
-                @blur="saveEdit(preset)"
-                @keyup.enter="saveEdit(preset)"
-                @keyup.escape="cancelEdit()"
-                class="preset-edit-field"
-              ></v-text-field>
-              <span
-                v-else
-                @click.stop="startEdit(preset, 'title')"
-                class="preset-editable-text"
-                title="Click to edit title"
-              >
-                {{ preset.title  }}
-              </span>
-            </v-list-item-title>
-
-            <!-- Editable description -->
-            <v-list-item-subtitle v-if="preset.description || (editingPresetId === preset.id && editingField === 'description')" class="preset-description-container">
-              <v-text-field
-                v-if="editingPresetId === preset.id && editingField === 'description'"
-                v-model="editingValue"
-                density="compact"
-                hide-details
-                rows="2"
-                autofocus
-                @blur="saveEdit(preset)"
-                @keyup.ctrl.enter="saveEdit(preset)"
-                @keyup.escape="cancelEdit()"
-                class="preset-edit-field"
-              ></v-text-field>
-              <span
-                v-else
-                @click.stop="startEdit(preset, 'description')"
-                class="preset-editable-text"
-                :title="preset.isDefault ? 'Default presets cannot be edited' : 'Click to edit description'"
-              >
-                {{ preset.description }}
-                <v-icon v-if="!preset.isDefault" size="small" class="edit-icon">mdi-pencil</v-icon>
-              </span>
-            </v-list-item-subtitle>
-
-            <!-- Add description option for presets without one -->
-            <v-list-item-subtitle v-else-if="!preset.isDefault">
-              <span
-                @click.stop="startEdit(preset, 'description')"
-                class="preset-add-description"
-                title="Click to add description"
-              >
-                <v-icon size="small" class="mr-1">mdi-plus</v-icon>
-                Add description...
-              </span>
-            </v-list-item-subtitle>
-
-            <template v-slot:append v-if="!preset.isDefault">
-              <v-btn
-                icon
-                size="small"
-                @click.stop="downloadPreset(preset)"
-                class="ml-2"
-                title="Download preset"
-              >
-                <v-icon size="small">mdi-download</v-icon>
-              </v-btn>
-              <v-btn
-                icon
-                size="small"
-                @click.stop="duplicatePreset(preset)"
-                class="ml-2"
-                title="Duplicate preset"
-              >
-                <v-icon size="small">mdi-content-copy</v-icon>
-              </v-btn>
-              <v-btn
-                icon
-                size="small"
-                @click.stop="showDeleteConfirmation(preset)"
-                class="ml-2"
-                title="Delete preset"
-              >
-                <v-icon size="small">mdi-delete</v-icon>
-              </v-btn>
-            </template>
+                  </div>
+                  <div class="mobile-action-row">
+                    <v-btn
+                      variant="text"
+                      size="small"
+                      @click.stop="downloadPreset(preset)"
+                      class="mobile-action-btn"
+                    >
+                      <v-icon left size="small">mdi-download</v-icon>
+                      Download
+                    </v-btn>
+                    <v-btn
+                      variant="text"
+                      size="small"
+                      @click.stop="duplicatePreset(preset)"
+                      class="mobile-action-btn"
+                    >
+                      <v-icon left size="small">mdi-content-copy</v-icon>
+                      Duplicate
+                    </v-btn>
+                  </div>
+                  <div v-if="!preset.isDefault" class="mobile-action-row">
+                    <v-btn
+                      variant="text"
+                      size="small"
+                      @click.stop="startEdit(preset, 'title')"
+                      class="mobile-action-btn"
+                    >
+                      <v-icon left size="small">mdi-pencil</v-icon>
+                      Edit Title
+                    </v-btn>
+                    <v-btn
+                      variant="text"
+                      size="small"
+                      @click.stop="showDeleteConfirmation(preset)"
+                      class="mobile-action-btn"
+                      color="error"
+                    >
+                      <v-icon left size="small">mdi-delete</v-icon>
+                      Delete
+                    </v-btn>
+                  </div>
+                </div>
+              </v-expand-transition>
+            </div>
           </v-list-item>
         </v-list>
 
@@ -465,7 +562,7 @@ import ParameterControl from './ParameterControl.vue';
 import presetDatabase from '../services/presetDatabase.js';
 import Physarum from '../Physarum.js';
 import ControlParameters from '../ControlParameters.js';
-
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 export default {
   name: 'ControlPanel',
   components: {
@@ -476,7 +573,7 @@ export default {
       drawerIconClass: 'drawer-icon drawer-icon-hidden',
       tabs: null,
       isFullscreen: false,
-      drawer: false,
+      drawer: isMobile,
       systemControls: ControlParameters.system,
       simControls: ControlParameters.controls,
       presetDatabase: null,
@@ -506,6 +603,8 @@ export default {
       snackbarMessage: '',
       originalPresetParameters: {}, // Store original parameters for revert functionality
       isPaused: false,
+      isMobileDevice: isMobile,
+      showMobileActions: null, // Track which preset's mobile actions are expanded
       keyboardShortcuts: [
         { key: 'H', description: 'Toggle Controls Panel' },
         { key: '[', description: 'Previous Preset' },
@@ -543,6 +642,9 @@ export default {
   methods: {
     toggleDrawer() {
       this.drawer = !this.drawer;
+    },
+    toggleMobileActions(presetId) {
+      this.showMobileActions = this.showMobileActions === presetId ? null : presetId;
     },
     toggleFullscreen() {
       if (this.isFullscreen) {
@@ -1200,17 +1302,6 @@ export default {
     // Initialize current parameters array
     this.updateCurrentParameters();
 
-    // Store bound functions for proper cleanup
-    this.boundFunctions = {
-      resizeCanvas: this.simulation.resizeCanvas.bind(this.simulation),
-      mouseTouchMove: this.simulation.mouseTouchMove.bind(this.simulation),
-      mousedown: this.simulation.mousedown.bind(this.simulation),
-      mouseup: this.simulation.mouseup.bind(this.simulation),
-      touchStart: this.simulation.touchStart.bind(this.simulation),
-      touchMove: this.simulation.touchMove.bind(this.simulation),
-      touchEnd: this.simulation.touchEnd.bind(this.simulation)
-    };
-
     // Add keyboard event listener
     document.addEventListener('keydown', this.handleKeydown);
 
@@ -1220,25 +1311,14 @@ export default {
     document.addEventListener('dragleave', this.handleDragLeave);
     document.addEventListener('drop', this.handleDrop);
 
-    window.addEventListener("resize", this.boundFunctions.resizeCanvas);
-
-    // Use pointer events for unified mouse/touch handling
-    document.addEventListener("pointermove", this.boundFunctions.mouseTouchMove);
-    document.addEventListener("pointerdown", this.boundFunctions.mousedown);
-    document.addEventListener("pointerup", this.boundFunctions.mouseup);
-    document.addEventListener("pointerleave", this.boundFunctions.mouseup);
-
-    // Add touch events for better multi-touch support
-    document.addEventListener("touchstart", this.boundFunctions.touchStart, { passive: false });
-    document.addEventListener("touchmove", this.boundFunctions.touchMove, { passive: false });
-    document.addEventListener("touchend", this.boundFunctions.touchEnd, { passive: false });
-    document.addEventListener("touchcancel", this.boundFunctions.touchEnd, { passive: false });
-
-    // Fallback mouse events for devices that don't support pointer events
-    document.addEventListener("mousemove", this.boundFunctions.mouseTouchMove);
-    document.addEventListener("mousedown", this.boundFunctions.mousedown);
-    document.addEventListener("mouseup", this.boundFunctions.mouseup);
-    document.addEventListener("mouseleave", this.boundFunctions.mouseup);
+    window.addEventListener("resize", this.simulation.resizeCanvas.bind(this.simulation));
+    document.addEventListener("touchstart", this.simulation.touchStart.bind(this.simulation));
+    document.addEventListener("touchmove", this.simulation.touchMove.bind(this.simulation));
+    document.addEventListener("pointermove", this.simulation.mouseTouchMove.bind(this.simulation));
+    document.addEventListener("mousemove", this.simulation.mouseTouchMove.bind(this.simulation));
+    document.addEventListener("mousedown", this.simulation.mousedown.bind(this.simulation));
+    document.addEventListener("mouseup", this.simulation.mouseup.bind(this.simulation));
+    document.addEventListener("mouseleave", this.simulation.mouseup.bind(this.simulation));
 
     requestAnimationFrame(this.animate);
 
@@ -1257,23 +1337,6 @@ export default {
     document.removeEventListener('dragenter', this.handleDragEnter);
     document.removeEventListener('dragleave', this.handleDragLeave);
     document.removeEventListener('drop', this.handleDrop);
-
-    // Remove mouse/touch event listeners using stored bound functions
-    if (this.boundFunctions) {
-      window.removeEventListener("resize", this.boundFunctions.resizeCanvas);
-      document.removeEventListener("pointermove", this.boundFunctions.mouseTouchMove);
-      document.removeEventListener("pointerdown", this.boundFunctions.mousedown);
-      document.removeEventListener("pointerup", this.boundFunctions.mouseup);
-      document.removeEventListener("pointerleave", this.boundFunctions.mouseup);
-      document.removeEventListener("touchstart", this.boundFunctions.touchStart);
-      document.removeEventListener("touchmove", this.boundFunctions.touchMove);
-      document.removeEventListener("touchend", this.boundFunctions.touchEnd);
-      document.removeEventListener("touchcancel", this.boundFunctions.touchEnd);
-      document.removeEventListener("mousemove", this.boundFunctions.mouseTouchMove);
-      document.removeEventListener("mousedown", this.boundFunctions.mousedown);
-      document.removeEventListener("mouseup", this.boundFunctions.mouseup);
-      document.removeEventListener("mouseleave", this.boundFunctions.mouseup);
-    }
   }
 };
 </script>
@@ -1293,7 +1356,7 @@ export default {
   transition: transform 0.3s ease-in-out;
   backdrop-filter: blur(8px);
 }
-.help-dialog div, .about-dialog div, .delete-dialog div, .save-as div, .import-conflict-dialog div {
+.help-dialog div, .delete-dialog div, .save-as div, .import-conflict-dialog div {
   color: #ccc !important;
 }
 
@@ -1552,6 +1615,91 @@ export default {
   margin: 0;
   opacity: 0.8;
   font-size: 1rem;
+}
+
+/* Mobile-specific styles */
+.mobile-preset-item {
+  width: 100%;
+}
+
+.mobile-preset-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.mobile-preset-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-preset-title {
+  font-weight: 500;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  word-wrap: break-word;
+}
+
+.mobile-preset-description {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+  word-wrap: break-word;
+}
+
+.mobile-actions-toggle {
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.mobile-actions-panel {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 0;
+  margin-top: 8px;
+}
+
+.mobile-action-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mobile-action-row:last-child {
+  margin-bottom: 0;
+}
+
+.mobile-action-btn {
+  flex: 1;
+  min-height: 40px;
+  text-transform: none;
+  font-size: 0.875rem;
+}
+
+.mobile-action-btn .v-icon {
+  margin-right: 4px;
+}
+
+/* Desktop layout styles */
+.desktop-preset-layout {
+  width: 100%;
+}
+
+.desktop-action-buttons {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.preset-title {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.preset-subtitle {
+  font-size: 0.875rem;
+  opacity: 0.7;
 }
 
 </style>
