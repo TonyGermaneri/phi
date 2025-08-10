@@ -36,15 +36,52 @@
                   </v-btn>
                 </div>
 
-                <v-list>
+                <div class="mb-2 text-caption text-medium-emphasis">
+                  Use ↑↓ arrows to reorder presets
+                </div>                <v-list>
                   <v-list-item
                     v-for="(preset, index) in availablePresets"
                     :key="preset.id || index"
                     :class="{ 'v-list-item--active': currentPresetIndex === index }"
                     @click="selectPreset(index)"
                   >
+                    <template v-slot:prepend>
+                      <div class="d-flex flex-column mr-2 preset-order-controls">
+                        <v-tooltip text="Move up" location="left">
+                          <template v-slot:activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              icon
+                              size="x-small"
+                              variant="text"
+                              @click.stop="movePresetUp(preset.id, index)"
+                              :disabled="index === 0"
+                              class="mb-1"
+                            >
+                              <v-icon size="small">mdi-chevron-up</v-icon>
+                            </v-btn>
+                          </template>
+                        </v-tooltip>
+                        <v-tooltip text="Move down" location="left">
+                          <template v-slot:activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              icon
+                              size="x-small"
+                              variant="text"
+                              @click.stop="movePresetDown(preset.id, index)"
+                              :disabled="index === availablePresets.length - 1"
+                            >
+                              <v-icon size="small">mdi-chevron-down</v-icon>
+                            </v-btn>
+                          </template>
+                        </v-tooltip>
+                      </div>
+                    </template>
+
                     <v-list-item-title>{{ preset.title || `Preset ${index + 1}` }}</v-list-item-title>
                     <v-list-item-subtitle v-if="preset.description">{{ preset.description }}</v-list-item-subtitle>
+
                     <template v-slot:append v-if="!preset.isDefault">
                       <v-btn
                         icon
@@ -371,6 +408,62 @@ export default {
       } catch (error) {
         console.error('Failed to delete preset:', error);
       }
+    },
+    async movePresetUp(presetId, currentIndex) {
+      if (currentIndex <= 0) return;
+
+      try {
+        await this.presetDatabase.movePresetUp(presetId);
+
+        // Update local array order
+        const preset = this.availablePresets[currentIndex];
+        this.availablePresets.splice(currentIndex, 1);
+        this.availablePresets.splice(currentIndex - 1, 0, preset);
+
+        // Update simulation parameter sets order
+        const parameterSet = this.simulation.parameterSets[currentIndex];
+        this.simulation.parameterSets.splice(currentIndex, 1);
+        this.simulation.parameterSets.splice(currentIndex - 1, 0, parameterSet);
+
+        // Update current preset index if necessary
+        if (this.currentPresetIndex === currentIndex) {
+          this.currentPresetIndex = currentIndex - 1;
+        } else if (this.currentPresetIndex === currentIndex - 1) {
+          this.currentPresetIndex = currentIndex;
+        }
+
+        console.log('Preset moved up successfully');
+      } catch (error) {
+        console.error('Failed to move preset up:', error);
+      }
+    },
+    async movePresetDown(presetId, currentIndex) {
+      if (currentIndex >= this.availablePresets.length - 1) return;
+
+      try {
+        await this.presetDatabase.movePresetDown(presetId);
+
+        // Update local array order
+        const preset = this.availablePresets[currentIndex];
+        this.availablePresets.splice(currentIndex, 1);
+        this.availablePresets.splice(currentIndex + 1, 0, preset);
+
+        // Update simulation parameter sets order
+        const parameterSet = this.simulation.parameterSets[currentIndex];
+        this.simulation.parameterSets.splice(currentIndex, 1);
+        this.simulation.parameterSets.splice(currentIndex + 1, 0, parameterSet);
+
+        // Update current preset index if necessary
+        if (this.currentPresetIndex === currentIndex) {
+          this.currentPresetIndex = currentIndex + 1;
+        } else if (this.currentPresetIndex === currentIndex + 1) {
+          this.currentPresetIndex = currentIndex;
+        }
+
+        console.log('Preset moved down successfully');
+      } catch (error) {
+        console.error('Failed to move preset down:', error);
+      }
     }
   },
   watch: {
@@ -461,9 +554,29 @@ export default {
   margin-bottom: 8px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
+  position: relative;
 }
 
 .v-list-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.v-list-item:hover .preset-order-controls {
+  opacity: 1;
+}
+
+.preset-order-controls {
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.preset-order-controls .v-btn {
+  min-width: 24px !important;
+  width: 24px;
+  height: 20px;
+}
+
+.preset-order-controls .v-btn:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 

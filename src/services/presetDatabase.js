@@ -6,7 +6,7 @@
 class PresetDatabase {
   constructor() {
     this.dbName = 'PhysarumPresets';
-    this.version = 1;
+    this.version = 2; // Increment version to trigger upgrade
     this.db = null;
     this.defaultPresets = []; // Will be populated with original presets
     this.originalParameterLines = []; // Store original parameter data for reset
@@ -28,6 +28,7 @@ class PresetDatabase {
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
+        const oldVersion = event.oldVersion;
 
         // Create presets store if it doesn't exist
         if (!db.objectStoreNames.contains('presets')) {
@@ -35,6 +36,27 @@ class PresetDatabase {
           presetStore.createIndex('title', 'title', { unique: false });
           presetStore.createIndex('created', 'created', { unique: false });
           presetStore.createIndex('isDefault', 'isDefault', { unique: false });
+          presetStore.createIndex('listOrder', 'listOrder', { unique: false });
+        } else if (oldVersion < 2) {
+          // Upgrade from version 1 to 2: add listOrder index
+          const transaction = event.target.transaction;
+          const presetStore = transaction.objectStore('presets');
+
+          if (!presetStore.indexNames.contains('listOrder')) {
+            presetStore.createIndex('listOrder', 'listOrder', { unique: false });
+          }
+
+          // Add listOrder field to existing presets
+          const getAllRequest = presetStore.getAll();
+          getAllRequest.onsuccess = () => {
+            const presets = getAllRequest.result;
+            presets.forEach((preset, index) => {
+              if (preset.listOrder === undefined) {
+                preset.listOrder = index;
+                presetStore.put(preset);
+              }
+            });
+          };
         }
       };
     });
@@ -80,6 +102,7 @@ class PresetDatabase {
         parameters: [...presets[i]], // Deep copy
         originalParameters: originalParameterLines ? [...originalParameterLines[i].slice(0, 32)] : [...presets[i]], // Store original for reset
         isDefault: true,
+        listOrder: i,
         created: new Date().toISOString(),
         modified: new Date().toISOString()
       };
@@ -110,12 +133,17 @@ class PresetDatabase {
    * Save a user preset
    */
   async saveUserPreset(title, description, parameters) {
+    // Get the next available order position
+    const allPresets = await this.getAllPresets();
+    const maxOrder = allPresets.reduce((max, preset) => Math.max(max, preset.listOrder || 0), -1);
+
     const preset = {
       id: this.generateUUID(),
       title: title.trim(),
       description: description.trim(),
       parameters: [...parameters], // Deep copy
       isDefault: false,
+      listOrder: maxOrder + 1,
       created: new Date().toISOString(),
       modified: new Date().toISOString()
     };
@@ -172,7 +200,16 @@ class PresetDatabase {
       const store = transaction.objectStore('presets');
 
       const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        const results = request.result;
+        // Sort by listOrder, with fallback to creation date for items without listOrder
+        results.sort((a, b) => {
+          const orderA = a.listOrder !== undefined ? a.listOrder : 999999;
+          const orderB = b.listOrder !== undefined ? b.listOrder : 999999;
+          return orderA - orderB;
+        });
+        resolve(results);
+      };
       request.onerror = () => reject(request.error);
     });
   }
@@ -238,6 +275,87 @@ class PresetDatabase {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
+  }
+
+  /**
+   * Move a preset up in the list order
+   */
+  async movePresetUp(id) {
+    const presets = await this.getAllPresets();
+    const currentIndex = presets.findIndex(preset => preset.id === id);
+
+    if (currentIndex <= 0) {
+      return; // Already at the top or not found
+    }
+
+    const currentPreset = presets[currentIndex];
+    const previousPreset = presets[currentIndex - 1];
+
+    // Swap the listOrder values
+    const tempOrder = currentPreset.listOrder;
+    currentPreset.listOrder = previousPreset.listOrder;
+    previousPreset.listOrder = tempOrder;
+
+    // Update both presets in the database
+    await this.putPreset(currentPreset);
+    await this.putPreset(previousPreset);
+  }
+
+  /**
+   * Move a preset down in the list order
+   */
+  async movePresetDown(id) {
+    const presets = await this.getAllPresets();
+    const currentIndex = presets.findIndex(preset => preset.id === id);
+
+    if (currentIndex >= presets.length - 1 || currentIndex === -1) {
+      return; // Already at the bottom or not found
+    }
+
+    const currentPreset = presets[currentIndex];
+    const nextPreset = presets[currentIndex + 1];
+
+    // Swap the listOrder values
+    const tempOrder = currentPreset.listOrder;
+    currentPreset.listOrder = nextPreset.listOrder;
+    nextPreset.listOrder = tempOrder;
+
+    // Update both presets in the database
+    await this.putPreset(currentPreset);
+    await this.putPreset(nextPreset);
+  }
+
+  /**
+   * Set the exact order position for a preset
+   */
+  async setPresetOrder(id, newOrder) {
+    const presets = await this.getAllPresets();
+    const preset = presets.find(p => p.id === id);
+
+    if (!preset) {
+      throw new Error('Preset not found');
+    }
+
+    const oldOrder = preset.listOrder;
+
+    // Update the target preset's order
+    preset.listOrder = newOrder;
+
+    // Adjust other presets' orders
+    for (const otherPreset of presets) {
+      if (otherPreset.id !== id) {
+        if (newOrder < oldOrder && otherPreset.listOrder >= newOrder && otherPreset.listOrder < oldOrder) {
+          otherPreset.listOrder++;
+        } else if (newOrder > oldOrder && otherPreset.listOrder > oldOrder && otherPreset.listOrder <= newOrder) {
+          otherPreset.listOrder--;
+        }
+      }
+    }
+
+    // Update all modified presets
+    for (const presetToUpdate of presets) {
+      await this.putPreset(presetToUpdate);
+    }
   }
 
   /**
