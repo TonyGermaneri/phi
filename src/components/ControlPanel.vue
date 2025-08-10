@@ -1,7 +1,7 @@
 <template>
   <div v-if="!drawer" :class="['control-icons', drawerIconClass]">
     <v-icon @click="toggleDrawer" class="cog-icon">mdi-cog</v-icon>
-    <v-icon @click="randomizeAllParameters" class="randomize-icon" title="Randomize all parameters - (Shortcut: r)">mdi-dice-multiple</v-icon>
+    <v-icon @click="randomizeAllParameters" class="randomize-icon" title="Randomize parameters by deviation % - (Shortcut: r)">mdi-dice-multiple</v-icon>
     <v-icon @click="showHelpDialog = !showHelpDialog" class="help-icon" title="Help - (Shortcut: ?)">mdi-help-box-outline</v-icon>
   </div>
 
@@ -151,7 +151,6 @@
       </div>
       <v-spacer></v-spacer>
       <v-icon @click="showHelpDialog = !showHelpDialog" :class="['help-icon', 'float-right', 'mr-3']" title="Help - (Shortcut: ?)">mdi-help-box-outline</v-icon>
-      <v-icon @click="randomizeAllParameters" :class="['randomize-icon', 'float-right', 'mr-3']" title="Randomize all parameters - (Shortcut: r)">mdi-dice-multiple</v-icon>
       <v-spacer></v-spacer>
     </div>
     <v-tabs v-model="tabs">
@@ -161,6 +160,26 @@
       <!-- Presets tab -->
       <v-tabs-window-item key="presets">
         <div class="mt-4">
+          <!-- Randomization Deviation Slider -->
+
+            <v-slider
+              v-model="randomizeDeviation"
+              :min="5"
+              :max="100"
+              :step="1"
+              thumb-label
+              track-color="rgba(255, 255, 255, 0.2)"
+              color="primary"
+              class="randomize-deviation-slider"
+            >
+              <template v-slot:prepend>
+                <span class="text-caption">{{ randomizeDeviation }}%</span>
+              </template>
+              <template v-slot:append>
+                <v-icon @click="randomizeAllParameters" :class="['randomize-icon']" title="Randomize parameters by deviation % - (Shortcut: r)">mdi-dice-multiple</v-icon>
+              </template>
+            </v-slider>
+
           <v-btn
             color="primary"
             size="small"
@@ -604,13 +623,16 @@ export default {
       isPaused: false,
       isMobileDevice: isMobile,
       showMobileActions: null, // Track which preset's mobile actions are expanded
+      // Randomization settings
+      randomizeDeviation: 10, // Default 10% deviation
+      excludedFromRandomization: [24, 25, 26, 27, 28, 29], // lightness base/multiplier, contrast base/multiplier, chromatic aberration strength/offset
       keyboardShortcuts: [
         { key: 'H', description: 'Toggle Controls Panel' },
         { key: '[', description: 'Previous Preset' },
         { key: ']', description: 'Next Preset' },
         { key: 'P', description: 'Pause/Resume Simulation' },
         { key: '.', description: 'Step Forward (when paused)' },
-        { key: 'R', description: 'Randomize All Parameters' },
+        { key: 'R', description: 'Randomize Parameters (by deviation %)' },
         { key: 'SPACE', description: 'Toggle Fullscreen' },
         { key: 'S', description: 'Save Current Preset' },
         { key: 'L', description: 'Revert to Saved Preset' },
@@ -661,19 +683,38 @@ export default {
       // Generate random values for all parameters
       const randomParameters = [];
       for (const control of this.simControls) {
+        // Skip parameters that should be excluded from randomization
+        if (this.excludedFromRandomization.includes(control.index)) {
+          randomParameters[control.index] = this.currentParameters[control.index];
+          continue;
+        }
+
         let randomValue;
         if (control.inputType === 'switch') {
           randomValue = Math.random() < 0.5;
         } else {
+          const currentValue = this.currentParameters[control.index] || control.default || 0;
           const min = control.min || 0;
           const max = control.max || 100;
-          randomValue = Math.random() * (max - min) + min;
+
+          // Calculate deviation range as percentage of current value
+          const deviationPercent = this.randomizeDeviation / 100;
+          const valueRange = max - min;
+          const deviationAmount = Math.max(valueRange * 0.01, Math.abs(currentValue) * deviationPercent);
+
+          // Generate random value within deviation range
+          const minDeviation = Math.max(min, currentValue - deviationAmount);
+          const maxDeviation = Math.min(max, currentValue + deviationAmount);
+
+          randomValue = Math.random() * (maxDeviation - minDeviation) + minDeviation;
+
           if (control.step) {
             randomValue = Math.round(randomValue / control.step) * control.step;
           }
         }
         randomParameters[control.index] = randomValue;
       }
+
       // Apply random parameters to simulation
       for (let i = 0; i < randomParameters.length; i++) {
         if (randomParameters[i] !== undefined) {
@@ -724,7 +765,7 @@ export default {
             return;
           }
           this.randomizeAllParameters();
-          this.showMessage('Parameters randomized');
+          this.showMessage(`Parameters randomized (±${this.randomizeDeviation}%)`);
           break;
         case ' ':
           this.toggleFullscreen();
@@ -1693,6 +1734,23 @@ export default {
 .preset-subtitle {
   font-size: 0.875rem;
   opacity: 0.7;
+}
+
+/* Randomization settings styles */
+.randomize-settings {
+  border: 1px solid rgba(98, 0, 238, 0.3);
+}
+
+.randomize-deviation-slider {
+  margin: 0 !important;
+}
+
+.randomize-deviation-slider .v-slider-track__fill {
+  background: linear-gradient(90deg, #6200ee, #bb86fc) !important;
+}
+
+.randomize-deviation-slider .v-slider-thumb {
+  background: #bb86fc !important;
 }
 
 </style>
