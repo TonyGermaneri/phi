@@ -291,11 +291,21 @@
           <v-btn
             color="info"
             size="small"
-            class="mb-2"
+            class="mr-2 mb-2"
             @click="triggerFileUpload"
           >
             <v-icon left>mdi-upload</v-icon>
             Import
+          </v-btn>
+          <v-btn
+            color="warning"
+            size="small"
+            class="mb-2"
+            @click="captureLerpAsPreset"
+            title="Capture current lerp state as new preset - stops lerp transformation (Shortcut: c)"
+          >
+            <v-icon left>mdi-target</v-icon>
+            Capture Lerp
           </v-btn>
           <input
             ref="fileInput"
@@ -875,6 +885,7 @@ export default {
         { key: 'R', description: 'Randomize Parameters (by deviation %)' },
         { key: 'SPACE', description: 'Toggle Fullscreen' },
         { key: 'S', description: 'Save Current Preset' },
+        { key: 'C', description: 'Capture Lerp as Preset' },
         { key: 'L', description: 'Revert to Saved Preset' },
         { key: 'ENTER', description: 'Play/Pause Playlist' },
         { key: 'SHIFT+L', description: 'Toggle Loop' },
@@ -1221,6 +1232,13 @@ export default {
           }
           event.preventDefault();
           break;
+        case 'c':
+          if (event.shiftKey || event.metaKey || event.ctrlKey) {
+            return;
+          }
+          this.captureLerpAsPreset();
+          event.preventDefault();
+          break;
         case 'z':
           if (event.metaKey || event.ctrlKey) {
             if (event.shiftKey) {
@@ -1537,6 +1555,62 @@ export default {
         this.hasUnsavedChanges = false;
       } catch (error) {
         console.error('Failed to save preset:', error);
+      }
+    },
+    async captureLerpAsPreset() {
+      if (!this.simulation || !this.simulation.lerpParams) {
+        this.showMessage('No lerp parameters available to capture');
+        return;
+      }
+
+      try {
+        // Get the current lerp parameters
+        const lerpParams = Array.from(this.simulation.lerpParams);
+        
+        // Generate a timestamp-based title for the captured preset
+        const timestamp = new Date().toLocaleString();
+        const presetTitle = `Lerp Capture ${timestamp}`;
+        const presetDescription = 'Captured from lerp transformation state';
+
+        // Save as new preset using the existing preset database
+        const newPreset = await this.presetDatabase.saveUserPreset(
+          presetTitle,
+          presetDescription,
+          lerpParams
+        );
+
+        // Add to local presets list
+        this.availablePresets.push(newPreset);
+
+        // Add to simulation parameter sets
+        this.simulation.addParameterSet(lerpParams);
+
+        // Select the new preset
+        this.currentPresetIndex = this.availablePresets.length - 1;
+        this.simulation.setPreset(this.currentPresetIndex);
+
+        // Store previous parameters for history
+        const previousParameters = [...this.currentParameters];
+
+        // Update current parameters to match the captured lerp state
+        this.currentParameters = [...lerpParams];
+
+        // Add to history
+        this.addToHistory('Captured lerp as preset', previousParameters);
+
+        // Save last state after capturing lerp
+        this.debouncedSaveLastState();
+
+        // Update saved state since we just created a new preset with captured parameters
+        this.savedParameters = [...lerpParams];
+        this.hasUnsavedChanges = false;
+
+        // Show success message
+        this.showMessage(`Captured lerp state as: ${presetTitle}`);
+
+      } catch (error) {
+        console.error('Failed to capture lerp as preset:', error);
+        this.showMessage('Failed to capture lerp state');
       }
     },
     async saveAsNewPreset() {
