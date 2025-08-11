@@ -213,7 +213,7 @@
               v-model="convergenceRateControl"
               :min="0.001"
               :max="0.1"
-              :step="0.001"
+              :step="0.0005"
               thumb-label
               track-color="rgba(255, 255, 255, 0.2)"
               color="secondary"
@@ -252,9 +252,9 @@
           <!-- Randomization Deviation Slider -->
           <v-slider
             v-model="randomizeDeviation"
-            :min="5"
+            :min="0.1"
             :max="100"
-            :step="1"
+            :step="0.1"
             thumb-label
             track-color="rgba(255, 255, 255, 0.2)"
             color="primary"
@@ -1249,6 +1249,7 @@ export default {
     },
     showMessage(message) {
       this.snackbarMessage = message;
+      if (this.isFullscreen) { return; }
       this.showSnackbar = true;
     },
     previousPreset() {
