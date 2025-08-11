@@ -850,6 +850,8 @@ export default {
         { key: 'ENTER', description: 'Play/Pause Playlist' },
         { key: 'SHIFT+L', description: 'Toggle Loop' },
         { key: 'SHIFT+S', description: 'Toggle Shuffle' },
+        { key: 'CMD/CTRL+Z', description: 'Undo Last Change' },
+        { key: 'CMD/CTRL+SHIFT+Z', description: 'Redo Last Change' },
         { key: '? or /', description: 'Show This Help' }
       ],
       // Parameter history tracking
@@ -1184,6 +1186,18 @@ export default {
             this.saveCurrentPresetKeyboard();
           }
           event.preventDefault();
+          break;
+        case 'z':
+          if (event.metaKey || event.ctrlKey) {
+            if (event.shiftKey) {
+              // CMD/CTRL+SHIFT+Z for redo
+              this.redoLastChange();
+            } else {
+              // CMD/CTRL+Z for undo
+              this.undoLastChange();
+            }
+            event.preventDefault();
+          }
           break;
         case 'l':
           if (event.shiftKey) {
@@ -1997,6 +2011,50 @@ export default {
         return `Changed ${changes.join(', ')}`;
       } else {
         return `Changed ${changes.length} parameters`;
+      }
+    },
+
+    // Undo/Redo functionality
+    undoLastChange() {
+      if (this.parameterHistory.length === 0) {
+        this.showMessage('No history to undo');
+        return;
+      }
+
+      if (this.isViewingHistory) {
+        // If we're already viewing history, go to the next entry (further back)
+        if (this.currentHistoryIndex < this.parameterHistory.length - 1) {
+          this.revertToHistoryState(this.currentHistoryIndex + 1);
+          this.showMessage(`Undo: ${this.parameterHistory[this.currentHistoryIndex].title}`);
+        } else {
+          this.showMessage('Nothing more to undo');
+        }
+      } else {
+        // Start viewing history from the second entry (index 1)
+        // Index 0 is the current state, index 1 is the previous state
+        if (this.parameterHistory.length > 1) {
+          this.revertToHistoryState(1);
+          this.showMessage(`Undo: ${this.parameterHistory[1].title}`);
+        } else {
+          this.showMessage('Nothing to undo');
+        }
+      }
+    },
+
+    redoLastChange() {
+      if (!this.isViewingHistory) {
+        this.showMessage('Nothing to redo');
+        return;
+      }
+
+      if (this.currentHistoryIndex > 0) {
+        // Go to a more recent entry (lower index)
+        this.revertToHistoryState(this.currentHistoryIndex - 1);
+        this.showMessage(`Redo: ${this.parameterHistory[this.currentHistoryIndex].title}`);
+      } else {
+        // Return to current state (index 0 is most recent)
+        this.returnToCurrentState();
+        this.showMessage('Returned to current state');
       }
     }
   },
