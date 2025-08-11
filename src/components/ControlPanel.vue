@@ -145,6 +145,7 @@
       <div v-if="currentPreset" class="ml-4 text-caption text-medium-emphasis d-inline-block">
         {{ currentPreset.description }}
       </div>
+
       <v-spacer></v-spacer>
       <v-icon @click="showHelpDialog = !showHelpDialog" :class="['help-icon', 'float-right', 'mr-3']" title="Help - (Shortcut: ?)">mdi-help-box-outline</v-icon>
       <v-spacer></v-spacer>
@@ -635,6 +636,36 @@
 
       <!-- History tab -->
       <v-tabs-window-item key="history">
+
+
+        <!-- Parameter Hash Input -->
+        <div class="mx-4 mt-3 mb-2" >
+          <div class="d-flex align-center">
+            <v-text-field
+              v-model="parameterHash"
+              label="Parameter Hash"
+              variant="outlined"
+              density="compact"
+              class="parameter-hash-input"
+              @click="selectHashInput"
+              @focus="selectHashInput"
+              hide-details
+              style="font-family: monospace; font-size: 0.85em;"
+            ></v-text-field>
+            <v-btn
+              @click="copyParameterHash"
+              icon="mdi-content-copy"
+              variant="text"
+              size="small"
+              class="ml-2"
+              title="Copy parameter hash"
+            ></v-btn>
+          </div>
+          <div class="text-caption text-medium-emphasis mt-1">
+            Compressed parameter state - copy/paste to share configurations
+          </div>
+        </div>
+
         <div class="mt-4">
           <div class="d-flex align-center mb-3">
             <h4 class="text-h6">Parameter History</h4>
@@ -770,6 +801,7 @@ import ParameterControl from './ParameterControl.vue';
 import presetDatabase from '../services/presetDatabase.js';
 import Physarum from '../Physarum.js';
 import ControlParameters from '../ControlParameters.js';
+import pako from 'pako';
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 export default {
   name: 'ControlPanel',
@@ -813,6 +845,9 @@ export default {
       snackbarMessage: '',
       originalPresetParameters: {}, // Store original parameters for revert functionality
       isPaused: false,
+      // Parameter hash functionality
+      parameterHash: '',
+      isUpdatingHash: false, // Prevent circular updates
       isMobileDevice: isMobile,
       showMobileActions: null, // Track which preset's mobile actions are expanded
       // Randomization settings
@@ -2091,6 +2126,104 @@ export default {
         this.returnToCurrentState();
         this.showMessage('Returned to current state');
       }
+    },
+
+    // Parameter hash methods
+    compressParametersToHash(parameters) {
+      try {
+        // Convert parameters to Float32Array for consistent binary representation
+        const floatArray = new Float32Array(parameters);
+        // Convert to binary data
+        const binaryData = new Uint8Array(floatArray.buffer);
+        // Compress with zlib
+        const compressed = pako.deflate(binaryData);
+        // Convert to base64
+        return btoa(String.fromCharCode.apply(null, compressed));
+      } catch (error) {
+        console.error('Failed to compress parameters:', error);
+        return '';
+      }
+    },
+
+    decompressHashToParameters(hash) {
+      try {
+        if (!hash || hash.trim() === '') {
+          return null;
+        }
+        // Convert from base64
+        const binaryString = atob(hash);
+        const compressed = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          compressed[i] = binaryString.charCodeAt(i);
+        }
+        // Decompress with zlib
+        const decompressed = pako.inflate(compressed);
+        // Convert back to Float32Array
+        const floatArray = new Float32Array(decompressed.buffer);
+        // Convert to regular array
+        return Array.from(floatArray);
+      } catch (error) {
+        console.error('Failed to decompress hash:', error);
+        return null;
+      }
+    },
+
+    updateParameterHash() {
+      if (this.isUpdatingHash) return;
+
+      this.isUpdatingHash = true;
+      this.parameterHash = this.compressParametersToHash(this.currentParameters);
+      this.$nextTick(() => {
+        this.isUpdatingHash = false;
+      });
+    },
+
+    applyParameterHash() {
+      if (this.isUpdatingHash) return;
+
+      const parameters = this.decompressHashToParameters(this.parameterHash);
+      if (parameters) {
+        this.isUpdatingHash = true;
+
+        // Store previous parameters for history
+        const previousParameters = [...this.currentParameters];
+
+        // Apply parameters to simulation
+        for (let i = 0; i < parameters.length && i < this.simControls.length; i++) {
+          if (parameters[i] !== undefined) {
+            this.simulation.updateParameter(i, parameters[i]);
+            this.currentParameters[i] = parameters[i];
+          }
+        }
+
+        // Add to history
+        this.addToHistory('Applied parameter hash', previousParameters);
+
+        // Save last state after hash application
+        this.debouncedSaveLastState();
+
+        // Check for unsaved changes
+        this.checkForUnsavedChanges();
+
+        this.$nextTick(() => {
+          this.isUpdatingHash = false;
+        });
+      }
+    },
+
+    copyParameterHash() {
+      if (this.parameterHash) {
+        navigator.clipboard.writeText(this.parameterHash).then(() => {
+          this.showMessage('Parameter hash copied to clipboard');
+        }).catch(err => {
+          console.error('Failed to copy hash:', err);
+          this.showMessage('Failed to copy hash');
+        });
+      }
+    },
+
+    selectHashInput(event) {
+      event.target.select();
     }
   },
   watch: {
@@ -2117,6 +2250,21 @@ export default {
       // Update shuffle index if shuffling
       if (this.isShuffling && this.shuffleOrder.length > 0) {
         this.shuffleIndex = this.shuffleOrder.indexOf(this.currentPresetIndex);
+      }
+    },
+    // Watch for parameter changes and update hash
+    currentParameters: {
+      handler() {
+        if (!this.isUpdatingHash) {
+          this.updateParameterHash();
+        }
+      },
+      deep: true
+    },
+    // Watch for hash changes and apply parameters
+    parameterHash() {
+      if (!this.isUpdatingHash && this.parameterHash && this.parameterHash.trim() !== '') {
+        this.applyParameterHash();
       }
     }
   },
