@@ -5,7 +5,7 @@ const controls = [
     description: 'Base distance agents look ahead to sense trails',
     min: 0,
     max: 30,
-    step: 0.1,
+    step: 0.001,
     default: 3.6,
     group: 'sensing',
     index: 0
@@ -16,7 +16,7 @@ const controls = [
     description: 'Scales sensing distance based on trail intensity at agent position',
     min: 0,
     max: 110,
-    step: 0.1,
+    step: 0.001,
     default: 23,
     group: 'sensing',
     index: 1
@@ -27,7 +27,7 @@ const controls = [
     description: 'Controls non-linear response to trail intensity for sensing distance',
     min: 0,
     max: 2200,
-    step: 0.01,
+    step: 0.001,
     default: 67,
     group: 'sensing',
     index: 2
@@ -38,7 +38,7 @@ const controls = [
     description: 'Base angle between left and right sensors (in radians)',
     min: 0,
     max: 6,
-    step: 0.01,
+    step: 0.001,
     default: 1.14,
     group: 'sensing',
     index: 3
@@ -49,7 +49,7 @@ const controls = [
     description: 'Scales sensor angle based on trail intensity',
     min: 0,
     max: 60,
-    step: 0.1,
+    step: 0.001,
     default: 8.6,
     group: 'sensing',
     index: 4
@@ -60,7 +60,7 @@ const controls = [
     description: 'Controls non-linear response to trail intensity for sensor angle',
     min: 0,
     max: 25,
-    step: 0.01,
+    step: 0.001,
     default: 2.05,
     group: 'sensing',
     index: 5
@@ -71,7 +71,7 @@ const controls = [
     description: 'Base angle agents turn when following trails (in radians)',
     min: 0,
     max: 6.5,
-    step: 0.01,
+    step: 0.001,
     default: 1.14,
     group: 'movement',
     index: 6
@@ -82,7 +82,7 @@ const controls = [
     description: 'Scales rotation based on trail intensity',
     min: 0,
     max: 400,
-    step: 0.1,
+    step: 0.001,
     default: 45,
     group: 'movement',
     index: 7
@@ -93,7 +93,7 @@ const controls = [
     description: 'Controls non-linear response to trail intensity for rotation',
     min: 0,
     max: 25,
-    step: 0.01,
+    step: 0.001,
     default: 2.3,
     group: 'movement',
     index: 8
@@ -104,7 +104,7 @@ const controls = [
     description: 'Base distance agents move forward each step',
     min: 0,
     max: 20,
-    step: 0.01,
+    step: 0.001,
     default: 1.27,
     group: 'movement',
     index: 9
@@ -115,7 +115,7 @@ const controls = [
     description: 'Scales movement distance based on trail intensity',
     min: 0,
     max: 150,
-    step: 0.1,
+    step: 0.001,
     default: 22,
     group: 'movement',
     index: 10
@@ -126,7 +126,7 @@ const controls = [
     description: 'Controls non-linear response to trail intensity for movement',
     min: 0,
     max: 150,
-    step: 0.01,
+    step: 0.001,
     default: 9,
     group: 'movement',
     index: 11
@@ -137,7 +137,7 @@ const controls = [
     description: 'Vertical offset for trail sensing relative to agent position',
     min: -20,
     max: 20,
-    step: 0.01,
+    step: 0.001,
     default: 0.0,
     group: 'movement',
     index: 12
@@ -148,7 +148,7 @@ const controls = [
     description: 'Forward/backward offset for trail sensing relative to heading direction',
     min: -20,
     max: 20,
-    step: 0.01,
+    step: 0.001,
     default: 0.0,
     group: 'movement',
     index: 13
@@ -159,7 +159,7 @@ const controls = [
     description: 'Scaling factor for sensed trail values. Affects sensitivity to trails',
     min: 0,
     max: 1.2,
-    step: 0.01,
+    step: 0.001,
     default: 0.14,
     group: 'sensing',
     index: 14
@@ -214,7 +214,7 @@ const controls = [
     description: 'How much trail each agent deposits. Higher = stronger trails',
     min: 0,
     max: 25,
-    step: 0.1,
+    step: 0.001,
     default: 11,
     group: 'deposit',
     index: 19
@@ -225,7 +225,7 @@ const controls = [
     description: 'Base hue value for color generation (0-1, wraps around color wheel)',
     min: 0,
     max: 1,
-    step: 0.01,
+    step: 0.001,
     default: 0.5,
     group: 'color',
     index: 20
@@ -236,7 +236,7 @@ const controls = [
     description: 'How much trail intensity affects hue changes. Higher values create more color variation',
     min: 0,
     max: 2,
-    step: 0.01,
+    step: 0.001,
     default: 1,
     group: 'color',
     index: 21
@@ -247,7 +247,7 @@ const controls = [
     description: 'Base saturation value for color generation (0-1, 0=gray, 1=vivid)',
     min: 0,
     max: 1,
-    step: 0.01,
+    step: 0.001,
     default: 1.0,
     group: 'color',
     index: 22
@@ -258,7 +258,7 @@ const controls = [
     description: 'How much trail intensity affects saturation. Higher values create more vivid colors in active areas',
     min: 0,
     max: 1.2,
-    step: 0.01,
+    step: 0.001,
     default: 0.56,
     group: 'color',
     index: 23
@@ -269,7 +269,7 @@ const controls = [
     description: 'Base lightness value for color generation (0-1, 0=black, 1=white)',
     min: 0,
     max: 1,
-    step: 0.01,
+    step: 0.001,
     default: 0.6,
     group: 'color',
     index: 24
@@ -280,7 +280,7 @@ const controls = [
     description: 'How much trail intensity affects lightness. Higher values create brighter colors in active areas',
     min: 0,
     max: 1,
-    step: 0.01,
+    step: 0.001,
     default: 0,
     group: 'color',
     index: 25
@@ -291,7 +291,7 @@ const controls = [
     description: 'Base contrast value for color generation (0-2, 1=normal contrast)',
     min: 0,
     max: 1,
-    step: 0.01,
+    step: 0.001,
     default: 1,
     group: 'color',
     index: 26
@@ -302,7 +302,7 @@ const controls = [
     description: 'How much trail intensity affects contrast. Higher values create more contrast in active areas',
     min: 0,
     max: 1,
-    step: 0.01,
+    step: 0.001,
     default: 0,
     group: 'color',
     index: 27
@@ -323,7 +323,7 @@ const controls = [
     title: 'Chromatic Aberration Offset',
     description: 'Controls the offset distance for color channel separation. Higher values create wider color fringing',
     min: 0,
-    max: 0.015,
+    max: 0.0015,
     step: 0.0001,
     default: 0.0,
     group: 'color',
