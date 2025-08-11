@@ -856,7 +856,11 @@ export default {
       parameterHistory: [],
       maxHistoryEntries: 50,
       currentHistoryIndex: -1, // -1 means we're at the latest state
-      isViewingHistory: false
+      isViewingHistory: false,
+      // Debounce settings for history
+      historyDebounceTime: 500, // milliseconds to wait before adding to history
+      historyDebounceTimer: null,
+      pendingHistoryChange: null // Store pending change info
     };
   },
   computed: {
@@ -1057,6 +1061,9 @@ export default {
       if (!this.simulation || !this.simControls) {
         return;
       }
+
+      // Clear any pending debounced history changes before randomizing
+      this.clearPendingHistory();
 
       // Store previous parameters for history
       const previousParameters = [...this.currentParameters];
@@ -1283,15 +1290,19 @@ export default {
     },
     updateParameter(control, value) {
       if (this.simulation && control.index !== undefined) {
-        // Store previous parameters for history
-        const previousParameters = [...this.currentParameters];
+        // Store previous parameters for history if this is the first change in a sequence
+        let previousParameters = null;
+        if (!this.pendingHistoryChange) {
+          previousParameters = [...this.currentParameters];
+        }
 
+        // Update simulation immediately (no debounce for real-time feedback)
         this.simulation.updateParameter(control.index, value);
         this.currentParameters[control.index] = value;
 
-        // Add to history
+        // Set up debounced history tracking
         const controlName = control.title || control.name || `Parameter ${control.index}`;
-        this.addToHistory(`Changed ${controlName}`, previousParameters);
+        this.debouncedAddToHistory(controlName, previousParameters);
 
         // Check if we have unsaved changes by comparing with saved state
         this.checkForUnsavedChanges();
@@ -1320,6 +1331,9 @@ export default {
     },
     async selectPreset(index) {
       if (this.simulation && index >= 0 && index < this.availablePresets.length) {
+        // Clear any pending debounced history changes before switching presets
+        this.clearPendingHistory();
+
         // Store previous parameters for history
         const previousParameters = [...this.currentParameters];
 
@@ -1810,9 +1824,9 @@ export default {
 
     // History management methods
     addToHistory(changeDescription, previousParameters) {
-      // If we're viewing history and make a change, clear history after current point
+      // If we're viewing history and make a change, return to current state
+      // but preserve the full history stack
       if (this.isViewingHistory) {
-        this.parameterHistory = this.parameterHistory.slice(this.currentHistoryIndex);
         this.isViewingHistory = false;
         this.currentHistoryIndex = -1;
       }
@@ -1832,6 +1846,42 @@ export default {
       if (this.parameterHistory.length > this.maxHistoryEntries) {
         this.parameterHistory = this.parameterHistory.slice(0, this.maxHistoryEntries);
       }
+    },
+
+    clearPendingHistory() {
+      // Clear any pending debounced history changes
+      if (this.historyDebounceTimer) {
+        clearTimeout(this.historyDebounceTimer);
+        this.historyDebounceTimer = null;
+      }
+      this.pendingHistoryChange = null;
+    },
+
+    debouncedAddToHistory(changeDescription, previousParameters) {
+      // Store the change information for debouncing
+      if (!this.pendingHistoryChange) {
+        this.pendingHistoryChange = {
+          description: changeDescription,
+          previousParameters: previousParameters
+        };
+      }
+
+      // Clear existing timer
+      if (this.historyDebounceTimer) {
+        clearTimeout(this.historyDebounceTimer);
+      }
+
+      // Set new timer
+      this.historyDebounceTimer = setTimeout(() => {
+        if (this.pendingHistoryChange) {
+          this.addToHistory(
+            `Changed ${this.pendingHistoryChange.description}`,
+            this.pendingHistoryChange.previousParameters
+          );
+          this.pendingHistoryChange = null;
+        }
+        this.historyDebounceTimer = null;
+      }, this.historyDebounceTime);
     },
 
     revertToHistoryState(index) {
@@ -2046,6 +2096,9 @@ export default {
       clearInterval(this.progressInterval);
       this.progressInterval = null;
     }
+
+    // Clear any pending history debounce timer
+    this.clearPendingHistory();
 
     // Remove keyboard event listener
     document.removeEventListener('keydown', this.handleKeydown);
