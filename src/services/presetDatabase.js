@@ -6,7 +6,7 @@
 class PresetDatabase {
   constructor() {
     this.dbName = 'PhysarumPresets';
-    this.version = 2; // Increment version to trigger upgrade
+    this.version = 3; // Increment version to trigger upgrade for lastState store
     this.db = null;
     this.defaultPresets = []; // Will be populated with original presets
     this.originalParameterLines = []; // Store original parameter data for reset
@@ -37,8 +37,10 @@ class PresetDatabase {
           presetStore.createIndex('created', 'created', { unique: false });
           presetStore.createIndex('isDefault', 'isDefault', { unique: false });
           presetStore.createIndex('listOrder', 'listOrder', { unique: false });
-        } else if (oldVersion < 2) {
-          // Upgrade from version 1 to 2: add listOrder index
+        }
+
+        // Handle upgrades from version 1 to 2
+        if (oldVersion < 2) {
           const transaction = event.target.transaction;
           const presetStore = transaction.objectStore('presets');
 
@@ -57,6 +59,11 @@ class PresetDatabase {
               }
             });
           };
+        }
+
+        // Handle upgrades from version 2 to 3: add lastState store
+        if (oldVersion < 3 && !db.objectStoreNames.contains('lastState')) {
+          const lastStateStore = db.createObjectStore('lastState', { keyPath: 'id' });
         }
       };
     });
@@ -157,7 +164,7 @@ class PresetDatabase {
   /**
    * Update an existing preset
    */
-  async updatePreset(id, title, description, parameters) {
+  async updatePreset(id, title, description, parameters = null) {
     const preset = await this.getPreset(id);
     if (!preset) {
       throw new Error('Preset not found');
@@ -165,7 +172,10 @@ class PresetDatabase {
 
     preset.title = title.trim();
     preset.description = description.trim();
-    preset.parameters = [...parameters];
+    // Only update parameters if explicitly provided
+    if (parameters !== null) {
+      preset.parameters = [...parameters];
+    }
     preset.version = (preset.version || 1) + 1;
     preset.modified = new Date().toISOString();
 
@@ -273,6 +283,56 @@ class PresetDatabase {
 
       const request = store.delete(id);
       request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Save the last state parameters
+   */
+  async saveLastState(parameters, selectedPresetId = null) {
+    if (!this.db) await this.init();
+
+    const lastState = {
+      id: 'lastState', // Fixed ID for the last state
+      parameters: [...parameters], // Deep copy
+      selectedPresetId: selectedPresetId, // Store which preset was selected
+      timestamp: new Date().toISOString()
+    };
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['lastState'], 'readwrite');
+      const store = transaction.objectStore('lastState');
+
+      const request = store.put(lastState);
+      request.onsuccess = () => resolve(lastState);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Load the last state parameters
+   */
+  async loadLastState() {
+    if (!this.db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['lastState'], 'readonly');
+      const store = transaction.objectStore('lastState');
+
+      const request = store.get('lastState');
+      request.onsuccess = () => {
+        const result = request.result;
+        if (result) {
+          resolve({
+            parameters: result.parameters,
+            selectedPresetId: result.selectedPresetId || null,
+            timestamp: result.timestamp
+          });
+        } else {
+          resolve(null);
+        }
+      };
       request.onerror = () => reject(request.error);
     });
   }

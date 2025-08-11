@@ -139,7 +139,7 @@ const controls = [
     max: 20,
     step: 0.01,
     default: 0.0,
-    group: 'visual',
+    group: 'movement',
     index: 12
   },
   {
@@ -150,7 +150,7 @@ const controls = [
     max: 20,
     step: 0.01,
     default: 0.0,
-    group: 'visual',
+    group: 'movement',
     index: 13
   },
   {
@@ -161,7 +161,7 @@ const controls = [
     max: 1.2,
     step: 0.01,
     default: 0.14,
-    group: 'trail',
+    group: 'sensing',
     index: 14
   },
   {
@@ -172,7 +172,7 @@ const controls = [
     max: 1,
     step: 0.001,
     default: 0.9,
-    group: 'trail',
+    group: 'deposit',
     index: 15
   },
   {
@@ -183,7 +183,7 @@ const controls = [
     max: 12,
     step: 1,
     default: 1.0,
-    group: 'trail',
+    group: 'deposit',
     index: 16
   },
   {
@@ -194,7 +194,7 @@ const controls = [
     max: 1,
     step: 0.001,
     default: 0.27,
-    group: 'visual',
+    group: 'deposit',
     index: 17
   },
   {
@@ -205,7 +205,7 @@ const controls = [
     max: 1,
     step: 0.001,
     default: 0.25,
-    group: 'visual',
+    group: 'deposit',
     index: 18
   },
   {
@@ -216,7 +216,7 @@ const controls = [
     max: 25,
     step: 0.1,
     default: 11,
-    group: 'trail',
+    group: 'deposit',
     index: 19
   },
   {
@@ -337,7 +337,7 @@ const controls = [
     max: 1,
     step: 0.001,
     default: 1,
-    group: 'visual',
+    group: 'deposit',
     index: 30
   },
   {

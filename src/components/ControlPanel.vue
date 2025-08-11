@@ -26,10 +26,11 @@
   <!-- Help Dialog -->
   <v-dialog v-model="showHelpDialog" max-width="600px" class="help-dialog">
     <v-card class="help-dialog" style="background: transparent;">
-      <v-card-title class="d-flex align-center">
-        <v-icon class="mr-3">mdi-help-box-outline</v-icon>
-        Keyboard Shortcuts
-      </v-card-title>
+      <v-card-actions>
+        <v-btn @click="showAboutDialog = true; showHelpDialog = false">About</v-btn>
+        <v-spacer></v-spacer>
+        <v-btn @click="showHelpDialog = false">Close</v-btn>
+      </v-card-actions>
       <v-card-text>
         <v-list class="help-shortcuts">
           <v-list-item
@@ -46,11 +47,6 @@
           </v-list-item>
         </v-list>
       </v-card-text>
-      <v-card-actions>
-        <v-btn @click="showAboutDialog = true; showHelpDialog = false">About</v-btn>
-        <v-spacer></v-spacer>
-        <v-btn @click="showHelpDialog = false">Close</v-btn>
-      </v-card-actions>
     </v-card>
   </v-dialog>
 
@@ -838,31 +834,31 @@ export default {
       progressInterval: null, // For updating progress indicators
       keyboardShortcuts: [
         { key: 'H', description: 'Toggle Controls Panel' },
-        { key: '[', description: 'Previous Preset' },
-        { key: ']', description: 'Next Preset' },
+        { key: '[, ]', description: 'Previous, Next Preset' },
         { key: 'P', description: 'Pause/Resume Simulation' },
         { key: '.', description: 'Step Forward (when paused)' },
         { key: 'R', description: 'Randomize Parameters (by deviation %)' },
         { key: 'SPACE', description: 'Toggle Fullscreen' },
         { key: 'S', description: 'Save Current Preset' },
-        { key: 'CMD/CTRL+S', description: 'Save Current Preset' },
         { key: 'L', description: 'Revert to Saved Preset' },
         { key: 'ENTER', description: 'Play/Pause Playlist' },
         { key: 'SHIFT+L', description: 'Toggle Loop' },
         { key: 'SHIFT+S', description: 'Toggle Shuffle' },
-        { key: 'CMD/CTRL+Z', description: 'Undo Last Change' },
-        { key: 'CMD/CTRL+SHIFT+Z', description: 'Redo Last Change' },
+        { key: 'CMD+Z, CMD+SHIFT+Z', description: 'Undo/Redo Last Change' },
         { key: '? or /', description: 'Show This Help' }
       ],
       // Parameter history tracking
       parameterHistory: [],
-      maxHistoryEntries: 50,
+      maxHistoryEntries: 1000,
       currentHistoryIndex: -1, // -1 means we're at the latest state
       isViewingHistory: false,
       // Debounce settings for history
       historyDebounceTime: 500, // milliseconds to wait before adding to history
       historyDebounceTimer: null,
-      pendingHistoryChange: null // Store pending change info
+      pendingHistoryChange: null, // Store pending change info
+      // Last state saving
+      lastStateDebounceTime: 1000, // milliseconds to wait before saving last state
+      lastStateDebounceTimer: null
     };
   },
   computed: {
@@ -1116,6 +1112,9 @@ export default {
       // Add to history
       this.addToHistory(`Randomized parameters (${this.randomizeDeviation}% deviation)`, previousParameters);
 
+      // Save last state after randomization
+      this.debouncedSaveLastState();
+
       // Check for unsaved changes after randomization
       this.checkForUnsavedChanges();
     },
@@ -1318,6 +1317,9 @@ export default {
         const controlName = control.title || control.name || `Parameter ${control.index}`;
         this.debouncedAddToHistory(controlName, previousParameters);
 
+        // Set up debounced last state saving
+        this.debouncedSaveLastState();
+
         // Check if we have unsaved changes by comparing with saved state
         this.checkForUnsavedChanges();
       }
@@ -1373,6 +1375,9 @@ export default {
             // Add to history
             this.addToHistory(`Loaded preset: ${freshPreset.title}`, previousParameters);
 
+            // Save last state after preset change
+            this.debouncedSaveLastState();
+
             // Store the saved state for change detection and reset unsaved changes
             this.savedParameters = [...freshPreset.parameters];
             this.hasUnsavedChanges = false; // No unsaved changes since we loaded fresh from DB
@@ -1389,6 +1394,9 @@ export default {
               // Add to history
               this.addToHistory(`Loaded preset: ${preset.title}`, previousParameters);
 
+              // Save last state after preset change
+              this.debouncedSaveLastState();
+
               this.savedParameters = [...preset.parameters];
               this.hasUnsavedChanges = false;
             }
@@ -1401,6 +1409,9 @@ export default {
 
           const preset = this.availablePresets[index];
           if (preset && preset.parameters) {
+            // Save last state after preset change
+            this.debouncedSaveLastState();
+
             this.savedParameters = [...preset.parameters];
             this.hasUnsavedChanges = false;
           }
@@ -1669,8 +1680,7 @@ export default {
         await this.presetDatabase.updatePreset(
           preset.id,
           this.editingField === 'title' ? newValue : preset.title,
-          this.editingField === 'description' ? newValue : preset.description,
-          preset.parameters
+          this.editingField === 'description' ? newValue : preset.description
         );
 
         // Update local preset data
@@ -1898,6 +1908,25 @@ export default {
       }, this.historyDebounceTime);
     },
 
+    debouncedSaveLastState() {
+      // Clear existing timer
+      if (this.lastStateDebounceTimer) {
+        clearTimeout(this.lastStateDebounceTimer);
+      }
+
+      // Set new timer
+      this.lastStateDebounceTimer = setTimeout(async () => {
+        try {
+          // Get the currently selected preset ID
+          const selectedPresetId = this.availablePresets[this.currentPresetIndex]?.id || null;
+          await this.presetDatabase.saveLastState(this.currentParameters, selectedPresetId);
+        } catch (error) {
+          console.error('Failed to save last state:', error);
+        }
+        this.lastStateDebounceTimer = null;
+      }, this.lastStateDebounceTime);
+    },
+
     revertToHistoryState(index) {
       if (index >= 0 && index < this.parameterHistory.length) {
         const historyEntry = this.parameterHistory[index];
@@ -1917,6 +1946,9 @@ export default {
             }
           }
         }
+
+        // Save last state after history revert
+        this.debouncedSaveLastState();
 
         // Don't mark as unsaved changes since we're just viewing history
         this.hasUnsavedChanges = false;
@@ -1941,6 +1973,9 @@ export default {
             }
           }
         }
+
+        // Save last state after returning to current
+        this.debouncedSaveLastState();
 
         // Check for unsaved changes
         this.checkForUnsavedChanges();
@@ -2098,18 +2133,52 @@ export default {
     // Load all presets after database is ready
     await this.loadAllPresets();
 
-    // Initialize current parameters array
-    this.updateCurrentParameters();
+    // Load and apply last state if it exists
+    try {
+      const lastState = await this.presetDatabase.loadLastState();
+      if (lastState && lastState.parameters && lastState.parameters.length > 0) {
+        // If we have a selected preset ID, try to find and preselect that preset
+        if (lastState.selectedPresetId) {
+          const presetIndex = this.availablePresets.findIndex(preset => preset.id === lastState.selectedPresetId);
+          if (presetIndex !== -1) {
+            this.currentPresetIndex = presetIndex;
+          }
+        }
+
+        // Apply last state parameters to simulation
+        for (let i = 0; i < lastState.parameters.length; i++) {
+          if (lastState.parameters[i] !== undefined) {
+            this.simulation.updateParameter(i, lastState.parameters[i]);
+          }
+        }
+        this.currentParameters = [...lastState.parameters];
+
+        // Add initial history entry for last state
+        this.addToHistory('Loaded last state', null);
+
+        // Mark as having unsaved changes since last state differs from preset
+        this.hasUnsavedChanges = true;
+      } else {
+        // No last state, use current preset
+        this.updateCurrentParameters();
+      }
+    } catch (error) {
+      console.error('Failed to load last state:', error);
+      // Fall back to normal preset loading
+      this.updateCurrentParameters();
+    }
 
     // Initialize saved state
     if (this.availablePresets.length > 0 && this.availablePresets[this.currentPresetIndex]) {
       const currentPreset = this.availablePresets[this.currentPresetIndex];
       if (currentPreset.parameters) {
         this.savedParameters = [...currentPreset.parameters];
-        this.hasUnsavedChanges = false;
 
-        // Add initial history entry
-        this.addToHistory(`Initial state: ${currentPreset.title}`, null);
+        // Add initial history entry only if we didn't load last state
+        if (!this.parameterHistory.length) {
+          this.hasUnsavedChanges = false;
+          this.addToHistory(`Initial state: ${currentPreset.title}`, null);
+        }
       }
     }
 
@@ -2157,6 +2226,12 @@ export default {
 
     // Clear any pending history debounce timer
     this.clearPendingHistory();
+
+    // Clear any pending last state debounce timer
+    if (this.lastStateDebounceTimer) {
+      clearTimeout(this.lastStateDebounceTimer);
+      this.lastStateDebounceTimer = null;
+    }
 
     // Remove keyboard event listener
     document.removeEventListener('keydown', this.handleKeydown);
