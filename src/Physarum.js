@@ -94,17 +94,19 @@ void main() {
   }
   setPreset(index) {
     this.currentPresetIndex = index;
+    this.setParams(this.parameterSets[this.currentPresetIndex]);
+  }
+  setParams(newParams) {
+    const f32ParameterSet = new Float32Array(newParams);
     this.params.pastParams = this.lerpParams;
     this.params.lerpTime = 0;
-    this.params.currentParams = this.parameterSets[this.currentPresetIndex];
+    this.params.currentParams = f32ParameterSet;
   }
-
   updateParameter(index, value) {
     if (this.params.currentParams && index >= 0 && index < this.params.currentParams.length) {
       this.params.currentParams[index] = value;
     }
   }
-
   updateSystemParameter(name, value) {
     if (this.params.hasOwnProperty(name)) {
       this.params[name] = value;

@@ -1148,12 +1148,7 @@ export default {
       }
 
       // Apply random parameters to simulation
-      for (let i = 0; i < randomParameters.length; i++) {
-        if (randomParameters[i] !== undefined) {
-          this.simulation.updateParameter(i, randomParameters[i]);
-          this.currentParameters[i] = randomParameters[i];
-        }
-      }
+      this.simulation.setParams(randomParameters);
 
       // Add to history
       this.addToHistory(`Randomized parameters (${this.randomizeDeviation}% deviation)`, previousParameters);
@@ -1566,7 +1561,7 @@ export default {
       try {
         // Get the current lerp parameters
         const lerpParams = Array.from(this.simulation.lerpParams);
-        
+
         // Generate a timestamp-based title for the captured preset
         const timestamp = new Date().toLocaleString();
         const presetTitle = `Lerp Capture ${timestamp}`;
