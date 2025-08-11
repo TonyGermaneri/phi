@@ -637,6 +637,107 @@
         </v-dialog>
       </v-tabs-window-item>
 
+      <!-- History tab -->
+      <v-tabs-window-item key="history">
+        <div class="mt-4">
+          <div class="d-flex align-center mb-3">
+            <h4 class="text-h6">Parameter History</h4>
+            <v-spacer></v-spacer>
+            <v-btn
+              v-if="parameterHistory.length > 0"
+              size="small"
+              variant="outlined"
+              color="error"
+              @click="clearHistory"
+            >
+              <v-icon left>mdi-trash-can</v-icon>
+              Clear
+            </v-btn>
+          </div>
+
+          <div v-if="parameterHistory.length === 0" class="text-center py-8 text-medium-emphasis">
+            <v-icon size="64" class="mb-4">mdi-history</v-icon>
+            <p>No parameter changes recorded yet.</p>
+            <p class="text-caption">Make some parameter adjustments to see them here!</p>
+          </div>
+
+          <v-list v-else class="history-list">
+            <v-list-item
+              v-for="(entry, index) in parameterHistory"
+              :key="entry.id"
+              :class="{
+                'history-item-current': !isViewingHistory && index === 0,
+                'history-item-selected': isViewingHistory && index === currentHistoryIndex
+              }"
+              @click="revertToHistoryState(index)"
+            >
+              <template v-slot:prepend>
+                <v-icon
+                  :color="!isViewingHistory && index === 0 ? 'primary' : (isViewingHistory && index === currentHistoryIndex ? 'secondary' : 'default')"
+                >
+                  {{ !isViewingHistory && index === 0 ? 'mdi-clock-outline' : (isViewingHistory && index === currentHistoryIndex ? 'mdi-clock-check' : 'mdi-clock') }}
+                </v-icon>
+              </template>
+
+              <v-list-item-title>
+                {{ entry.title }}
+                <v-chip
+                  v-if="!isViewingHistory && index === 0"
+                  size="small"
+                  color="primary"
+                  class="ml-2"
+                >
+                  Current
+                </v-chip>
+                <v-chip
+                  v-else-if="isViewingHistory && index === currentHistoryIndex"
+                  size="small"
+                  color="secondary"
+                  class="ml-2"
+                >
+                  Viewing
+                </v-chip>
+              </v-list-item-title>
+
+              <v-list-item-subtitle>
+                {{ formatHistoryTime(entry.timestamp) }}
+                <br>
+                <span class="text-caption">{{ getHistoryChangeSummary(entry) }}</span>
+              </v-list-item-subtitle>
+
+              <template v-slot:append>
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  @click.stop="deleteHistoryEntry(index)"
+                >
+                  <v-icon size="small">mdi-close</v-icon>
+                </v-btn>
+              </template>
+            </v-list-item>
+          </v-list>
+
+          <div v-if="isViewingHistory" class="mt-4 pa-3" style="background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107;">
+            <div class="d-flex align-center mb-2">
+              <v-icon color="warning" class="mr-2">mdi-information</v-icon>
+              <span class="text-body-2 font-weight-medium">Viewing Historical State</span>
+            </div>
+            <p class="text-caption mb-3">
+              You are currently viewing a historical parameter state. Any changes you make will create new history entries and return you to the current state.
+            </p>
+            <v-btn
+              size="small"
+              color="primary"
+              @click="returnToCurrentState"
+            >
+              <v-icon left>mdi-restore</v-icon>
+              Return to Current State
+            </v-btn>
+          </div>
+        </div>
+      </v-tabs-window-item>
+
       <!-- Simulation parameter tabs -->
       <v-tabs-window-item v-for="group in groups" :key="group">
         <ParameterControl
@@ -750,7 +851,12 @@ export default {
         { key: 'SHIFT+L', description: 'Toggle Loop' },
         { key: 'SHIFT+S', description: 'Toggle Shuffle' },
         { key: '? or /', description: 'Show This Help' }
-      ]
+      ],
+      // Parameter history tracking
+      parameterHistory: [],
+      maxHistoryEntries: 50,
+      currentHistoryIndex: -1, // -1 means we're at the latest state
+      isViewingHistory: false
     };
   },
   computed: {
@@ -761,7 +867,7 @@ export default {
       return [...new Set(this.simControls.map(control => control.group))];
     },
     allTabs() {
-      return ['presets', ...this.groups];
+      return ['presets', 'history', ...this.groups];
     },
     groupControls() {
       return (group) => {
@@ -952,6 +1058,9 @@ export default {
         return;
       }
 
+      // Store previous parameters for history
+      const previousParameters = [...this.currentParameters];
+
       // Generate random values for all parameters
       const randomParameters = [];
       for (const control of this.simControls) {
@@ -994,6 +1103,9 @@ export default {
           this.currentParameters[i] = randomParameters[i];
         }
       }
+
+      // Add to history
+      this.addToHistory(`Randomized parameters (${this.randomizeDeviation}% deviation)`, previousParameters);
 
       // Check for unsaved changes after randomization
       this.checkForUnsavedChanges();
@@ -1171,8 +1283,15 @@ export default {
     },
     updateParameter(control, value) {
       if (this.simulation && control.index !== undefined) {
+        // Store previous parameters for history
+        const previousParameters = [...this.currentParameters];
+
         this.simulation.updateParameter(control.index, value);
         this.currentParameters[control.index] = value;
+
+        // Add to history
+        const controlName = control.title || control.name || `Parameter ${control.index}`;
+        this.addToHistory(`Changed ${controlName}`, previousParameters);
 
         // Check if we have unsaved changes by comparing with saved state
         this.checkForUnsavedChanges();
@@ -1201,6 +1320,9 @@ export default {
     },
     async selectPreset(index) {
       if (this.simulation && index >= 0 && index < this.availablePresets.length) {
+        // Store previous parameters for history
+        const previousParameters = [...this.currentParameters];
+
         this.currentPresetIndex = index;
 
         // Get the preset ID to reload from database
@@ -1220,6 +1342,9 @@ export default {
             this.simulation.setPreset(index);
             this.updateCurrentParameters();
 
+            // Add to history
+            this.addToHistory(`Loaded preset: ${freshPreset.title}`, previousParameters);
+
             // Store the saved state for change detection and reset unsaved changes
             this.savedParameters = [...freshPreset.parameters];
             this.hasUnsavedChanges = false; // No unsaved changes since we loaded fresh from DB
@@ -1233,6 +1358,9 @@ export default {
 
             const preset = this.availablePresets[index];
             if (preset && preset.parameters) {
+              // Add to history
+              this.addToHistory(`Loaded preset: ${preset.title}`, previousParameters);
+
               this.savedParameters = [...preset.parameters];
               this.hasUnsavedChanges = false;
             }
@@ -1678,6 +1806,148 @@ export default {
         console.error('File read error:', error);
         this.showMessage('Failed to read dropped file');
       }
+    },
+
+    // History management methods
+    addToHistory(changeDescription, previousParameters) {
+      // If we're viewing history and make a change, clear history after current point
+      if (this.isViewingHistory) {
+        this.parameterHistory = this.parameterHistory.slice(this.currentHistoryIndex);
+        this.isViewingHistory = false;
+        this.currentHistoryIndex = -1;
+      }
+
+      const historyEntry = {
+        id: Date.now() + Math.random(), // Unique ID
+        title: changeDescription,
+        timestamp: new Date(),
+        parameters: [...this.currentParameters], // Deep copy
+        previousParameters: previousParameters ? [...previousParameters] : null
+      };
+
+      // Add to beginning of history (most recent first)
+      this.parameterHistory.unshift(historyEntry);
+
+      // Limit history size
+      if (this.parameterHistory.length > this.maxHistoryEntries) {
+        this.parameterHistory = this.parameterHistory.slice(0, this.maxHistoryEntries);
+      }
+    },
+
+    revertToHistoryState(index) {
+      if (index >= 0 && index < this.parameterHistory.length) {
+        const historyEntry = this.parameterHistory[index];
+
+        // Set viewing history state
+        this.isViewingHistory = true;
+        this.currentHistoryIndex = index;
+
+        // Apply the historical parameters
+        this.currentParameters = [...historyEntry.parameters];
+
+        // Update simulation
+        if (this.simulation) {
+          for (let i = 0; i < historyEntry.parameters.length; i++) {
+            if (historyEntry.parameters[i] !== undefined) {
+              this.simulation.updateParameter(i, historyEntry.parameters[i]);
+            }
+          }
+        }
+
+        // Don't mark as unsaved changes since we're just viewing history
+        this.hasUnsavedChanges = false;
+      }
+    },
+
+    returnToCurrentState() {
+      if (this.isViewingHistory && this.parameterHistory.length > 0) {
+        // Return to the most recent state (index 0)
+        const currentEntry = this.parameterHistory[0];
+        this.isViewingHistory = false;
+        this.currentHistoryIndex = -1;
+
+        // Apply the current parameters
+        this.currentParameters = [...currentEntry.parameters];
+
+        // Update simulation
+        if (this.simulation) {
+          for (let i = 0; i < currentEntry.parameters.length; i++) {
+            if (currentEntry.parameters[i] !== undefined) {
+              this.simulation.updateParameter(i, currentEntry.parameters[i]);
+            }
+          }
+        }
+
+        // Check for unsaved changes
+        this.checkForUnsavedChanges();
+      }
+    },
+
+    deleteHistoryEntry(index) {
+      this.parameterHistory.splice(index, 1);
+
+      // If we were viewing a deleted entry, adjust the current index
+      if (this.isViewingHistory) {
+        if (index === this.currentHistoryIndex) {
+          // We deleted the currently viewed entry, return to current state
+          this.returnToCurrentState();
+        } else if (index < this.currentHistoryIndex) {
+          // Adjust index since we removed an entry before our current one
+          this.currentHistoryIndex--;
+        }
+      }
+    },
+
+    clearHistory() {
+      this.parameterHistory = [];
+      this.isViewingHistory = false;
+      this.currentHistoryIndex = -1;
+    },
+
+    formatHistoryTime(timestamp) {
+      const now = new Date();
+      const diff = now - timestamp;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (days > 0) {
+        return `${days} day${days > 1 ? 's' : ''} ago`;
+      } else if (hours > 0) {
+        return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      } else if (minutes > 0) {
+        return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      } else {
+        return 'Just now';
+      }
+    },
+
+    getHistoryChangeSummary(entry) {
+      if (!entry.previousParameters) {
+        return 'Initial state';
+      }
+
+      const changes = [];
+      for (let i = 0; i < Math.max(entry.parameters.length, entry.previousParameters.length); i++) {
+        if (entry.parameters[i] !== entry.previousParameters[i]) {
+          // Find the control name for this index
+          const control = this.simControls.find(c => c.index === i);
+          if (control) {
+            changes.push(control.title || control.name || `Parameter ${i}`);
+          }
+        }
+      }
+
+      if (changes.length === 0) {
+        return 'No changes detected';
+      } else if (changes.length === 1) {
+        return `Changed ${changes[0]}`;
+      } else if (changes.length <= 3) {
+        return `Changed ${changes.join(', ')}`;
+      } else {
+        return `Changed ${changes.length} parameters`;
+      }
     }
   },
   watch: {
@@ -1729,6 +1999,9 @@ export default {
       if (currentPreset.parameters) {
         this.savedParameters = [...currentPreset.parameters];
         this.hasUnsavedChanges = false;
+
+        // Add initial history entry
+        this.addToHistory(`Initial state: ${currentPreset.title}`, null);
       }
     }
 
@@ -1763,6 +2036,7 @@ export default {
     }, 3000);
 
   },
+
   beforeUnmount() {
     // Stop playlist
     this.stopPlaylist();
@@ -2242,6 +2516,64 @@ export default {
 
 .v-list-item--active {
   border: 0px solid rgba(98, 0, 238, 0.5) !important;
+}
+
+/* History List Styles */
+.history-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.history-item-current {
+  border-left: 4px solid rgba(98, 0, 238, 0.8) !important;
+  background: rgba(98, 0, 238, 0.1) !important;
+}
+
+.history-item-selected {
+  border-left: 4px solid rgba(255, 193, 7, 0.8) !important;
+  background: rgba(255, 193, 7, 0.1) !important;
+}
+
+.history-list .v-list-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.history-list .v-list-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.history-list .v-list-item-title {
+  font-weight: 500;
+}
+
+.history-list .v-list-item-subtitle {
+  opacity: 0.7;
+  font-size: 0.75rem;
+}
+
+.history-item-current {
+  background-color: rgba(33, 150, 243, 0.1) !important;
+  border-left: 3px solid #2196f3;
+}
+
+.history-item-selected {
+  background-color: rgba(255, 193, 7, 0.1) !important;
+  border-left: 3px solid #ffc107;
+}
+
+.history-list .v-list-item {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.history-list .v-list-item:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.unsaved-indicator {
+  color: #ff6b35;
+  font-weight: bold;
 }
 
 </style>
