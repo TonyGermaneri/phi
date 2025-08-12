@@ -351,9 +351,9 @@ void main() {
 
     // Wrap hue and clamp saturation and lightness
     hue = mod(hue, 1.0);
-    saturation = clamp(saturation, 0.0, 1.0);
-    lightness = clamp(lightness, 0.0, 1.0);
-    contrast = clamp(contrast, 0.0, 2.0);
+    saturation = mod(saturation, 1.0);
+    lightness = mod(lightness, 1.0);
+    contrast = mod(contrast, 2.0);
 
     // Convert HSL to RGB
     vec3 hslColor = vec3(hue, saturation, lightness);
