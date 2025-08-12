@@ -1,7 +1,7 @@
 <template>
   <div v-if="!drawer" :class="['control-icons', drawerIconClass]">
     <v-icon @click="toggleDrawer" class="cog-icon">mdi-cog</v-icon>
-    <v-icon @click="randomizeAllParameters" class="randomize-icon" title="Randomize parameters by deviation % - (Shortcut: r)">mdi-dice-multiple</v-icon>
+    <v-icon @click="randomizeParameters" class="randomize-icon" title="Randomize parameters by deviation % - (Shortcut: r)">mdi-dice-multiple</v-icon>
     <v-icon @click="showHelpDialog = !showHelpDialog" class="help-icon" title="Help - (Shortcut: ?)">mdi-help-box-outline</v-icon>
   </div>
 
@@ -151,11 +151,14 @@
       <v-spacer></v-spacer>
     </div>
     <v-tabs v-model="tabs">
-      <v-tab v-for="tab in allTabs" :key="tab">{{ tab }}</v-tab>
+      <v-tab v-for="tab in allTabs" :key="tab">
+        {{ tab }}
+        <v-icon v-if="groups.indexOf(tab) != -1" @click.stop.capture="randomizeGroup(tab)">mdi-dice-multiple</v-icon>
+      </v-tab>
     </v-tabs>
     <v-tabs-window v-model="tabs" class="mx-4">
       <!-- Presets tab -->
-      <v-tabs-window-item key="presets">
+      <v-tabs-window-item key="preset">
         <div class="mt-4">
           <!-- Playlist Controls -->
           <div class="playlist-controls mb-4">
@@ -264,7 +267,7 @@
               <span class="text-caption">{{ randomizeDeviation }}%</span>
             </template>
             <template v-slot:append>
-              <v-icon @click="randomizeAllParameters" :class="['randomize-icon']" title="Randomize parameters by deviation % - (Shortcut: r)">mdi-dice-multiple</v-icon>
+              <v-icon @click="randomizeParameters" :class="['randomize-icon']" title="Randomize parameters by deviation % - (Shortcut: r)">mdi-dice-multiple</v-icon>
             </template>
           </v-slider>
 
@@ -678,7 +681,9 @@
 
         <div class="mt-4">
           <div class="d-flex align-center mb-3">
-            <h4 class="text-h6">Parameter History</h4>
+            <h4 class="text-h6">
+              Parameter History
+            </h4>
             <v-spacer></v-spacer>
             <v-btn
               v-if="parameterHistory.length > 0"
@@ -754,24 +759,6 @@
               </template>
             </v-list-item>
           </v-list>
-
-          <div v-if="isViewingHistory" class="mt-4 pa-3" style="background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107;">
-            <div class="d-flex align-center mb-2">
-              <v-icon color="warning" class="mr-2">mdi-information</v-icon>
-              <span class="text-body-2 font-weight-medium">Viewing Historical State</span>
-            </div>
-            <p class="text-caption mb-3">
-              You are currently viewing a historical parameter state. Any changes you make will create new history entries and return you to the current state.
-            </p>
-            <v-btn
-              size="small"
-              color="primary"
-              @click="returnToCurrentState"
-            >
-              <v-icon left>mdi-restore</v-icon>
-              Return to Current State
-            </v-btn>
-          </div>
         </div>
       </v-tabs-window-item>
 
@@ -789,7 +776,14 @@
           :default-value="control.default"
           :input-type="control.inputType || 'slider'"
           @update:model-value="updateParameter(control, $event)"
-        />
+        >
+          <v-icon
+            @click="toggleLock(control.index)"
+            :icon="isLocked(control) ? 'mdi-lock-open' : 'mdi-lock'"
+            :color="isLocked(control) ? 'primary' : 'red'"
+            ></v-icon>
+          <v-icon @click="randomizeSingle(control.index)">mdi-dice-multiple</v-icon>
+        </ParameterControl>
       </v-tabs-window-item>
 
     </v-tabs-window>
@@ -908,6 +902,11 @@ export default {
     };
   },
   computed: {
+    isLocked() {
+      return (control) => {
+        return this.excludedFromRandomization.indexOf(control.index) == -1;
+      }
+    },
     currentPreset() {
       return this.availablePresets[this.currentPresetIndex];
     },
@@ -915,7 +914,7 @@ export default {
       return [...new Set(this.simControls.map(control => control.group))];
     },
     allTabs() {
-      return ['presets', 'history', ...this.groups];
+      return ['preset', 'history', ...this.groups];
     },
     groupControls() {
       return (group) => {
@@ -928,6 +927,13 @@ export default {
     }
   },
   methods: {
+    toggleLock(index) {
+      const i = this.excludedFromRandomization.indexOf(index);
+      if (i == -1) {
+        return this.excludedFromRandomization.push(index);
+      }
+      this.excludedFromRandomization.splice(i, 1);
+    },
     toggleDrawer() {
       this.drawer = !this.drawer;
     },
@@ -1101,9 +1107,38 @@ export default {
       }
       this.isFullscreen = !this.isFullscreen;
     },
-    randomizeAllParameters() {
+    // Helper method to generate a random value for a control
+    generateRandomValueForControl(control) {
+      if (control.inputType === 'switch') {
+        return Math.random() < 0.5;
+      }
+
+      const currentValue = this.currentParameters[control.index] || control.default || 0;
+      const min = control.min || 0;
+      const max = control.max || 100;
+
+      // Calculate deviation range as percentage of current value
+      const deviationPercent = this.randomizeDeviation / 100;
+      const valueRange = max - min;
+      const deviationAmount = Math.max(valueRange * 0.01, Math.abs(currentValue) * deviationPercent);
+
+      // Generate random value within deviation range
+      const minDeviation = Math.max(min, currentValue - deviationAmount);
+      const maxDeviation = Math.min(max, currentValue + deviationAmount);
+
+      let randomValue = Math.random() * (maxDeviation - minDeviation) + minDeviation;
+
+      if (control.step) {
+        randomValue = Math.round(randomValue / control.step) * control.step;
+      }
+
+      return randomValue;
+    },
+
+    // Helper method to perform common randomization setup and cleanup
+    performRandomization(controls, historyMessage, successMessage) {
       if (!this.simulation || !this.simControls) {
-        return;
+        return false;
       }
 
       // Clear any pending debounced history changes before randomizing
@@ -1112,52 +1147,93 @@ export default {
       // Store previous parameters for history
       const previousParameters = [...this.currentParameters];
 
-      // Generate random values for all parameters
-      const randomParameters = [];
-      for (const control of this.simControls) {
-        // Skip parameters that should be excluded from randomization
-        if (this.excludedFromRandomization.includes(control.index)) {
-          randomParameters[control.index] = this.currentParameters[control.index];
-          continue;
-        }
-
-        let randomValue;
-        if (control.inputType === 'switch') {
-          randomValue = Math.random() < 0.5;
-        } else {
-          const currentValue = this.currentParameters[control.index] || control.default || 0;
-          const min = control.min || 0;
-          const max = control.max || 100;
-
-          // Calculate deviation range as percentage of current value
-          const deviationPercent = this.randomizeDeviation / 100;
-          const valueRange = max - min;
-          const deviationAmount = Math.max(valueRange * 0.01, Math.abs(currentValue) * deviationPercent);
-
-          // Generate random value within deviation range
-          const minDeviation = Math.max(min, currentValue - deviationAmount);
-          const maxDeviation = Math.min(max, currentValue + deviationAmount);
-
-          randomValue = Math.random() * (maxDeviation - minDeviation) + minDeviation;
-
-          if (control.step) {
-            randomValue = Math.round(randomValue / control.step) * control.step;
-          }
-        }
-        randomParameters[control.index] = randomValue;
+      // Generate and apply random values for the specified controls
+      for (const control of controls) {
+        const randomValue = this.generateRandomValueForControl(control);
+        this.simulation.updateParameter(control.index, randomValue);
+        this.currentParameters[control.index] = randomValue;
       }
 
-      // Apply random parameters to simulation
-      this.simulation.setParams(randomParameters);
-
       // Add to history
-      this.addToHistory(`Randomized parameters (${this.randomizeDeviation}% deviation)`, previousParameters);
+      this.addToHistory(historyMessage, previousParameters);
 
       // Save last state after randomization
       this.debouncedSaveLastState();
 
       // Check for unsaved changes after randomization
       this.checkForUnsavedChanges();
+
+      // Show feedback message
+      if (successMessage) {
+        this.showMessage(successMessage);
+      }
+
+      return true;
+    },
+
+    randomizeParameters() {
+      // Get all unlocked controls
+      const unlockedControls = this.simControls.filter(control =>
+        !this.excludedFromRandomization.includes(control.index)
+      );
+
+      this.performRandomization(
+        unlockedControls,
+        `Randomized parameters (${this.randomizeDeviation}% deviation)`,
+        null // No success message for global randomization
+      );
+    },
+
+    randomizeSingle(controlIndex) {
+      // Find the control by index
+      const control = this.simControls.find(c => c.index === controlIndex);
+      if (!control) {
+        console.warn(`Control with index ${controlIndex} not found`);
+        return;
+      }
+
+      // Skip if this parameter is excluded from randomization
+      if (this.excludedFromRandomization.includes(control.index)) {
+        this.showMessage(`Parameter "${control.title}" is locked from randomization`);
+        return;
+      }
+
+      this.performRandomization(
+        [control],
+        `Randomized "${control.title}" (${this.randomizeDeviation}% deviation)`,
+        `Randomized "${control.title}"`
+      );
+    },
+
+    randomizeGroup(groupName) {
+      // Get all controls in this group
+      const groupControls = this.simControls.filter(c => c.group === groupName);
+      if (groupControls.length === 0) {
+        console.warn(`No controls found for group "${groupName}"`);
+        return;
+      }
+
+      // Filter out locked controls
+      const unlockedControls = groupControls.filter(control =>
+        !this.excludedFromRandomization.includes(control.index)
+      );
+
+      if (unlockedControls.length === 0) {
+        this.showMessage(`All parameters in "${groupName}" group are locked`);
+        return;
+      }
+
+      // Create detailed messages
+      const lockedCount = groupControls.length - unlockedControls.length;
+      const historyMessage = lockedCount > 0
+        ? `Randomized "${groupName}" group (${unlockedControls.length}/${groupControls.length} parameters, ${lockedCount} locked)`
+        : `Randomized "${groupName}" group (${unlockedControls.length} parameters)`;
+
+      const successMessage = lockedCount > 0
+        ? `Randomized "${groupName}" group (${lockedCount} parameters locked)`
+        : `Randomized "${groupName}" group`;
+
+      this.performRandomization(unlockedControls, historyMessage, successMessage);
     },
     // Keyboard shortcut methods
     handleKeydown(event) {
@@ -1208,7 +1284,7 @@ export default {
           if (event.shiftKey || event.metaKey || event.ctrlKey) {
             return;
           }
-          this.randomizeAllParameters();
+          this.randomizeParameters();
           this.showMessage(`Parameters randomized (±${this.randomizeDeviation}%)`);
           break;
         case ' ':
@@ -2429,7 +2505,7 @@ export default {
     setTimeout(() => {
       this.drawerIconClass = 'drawer-icon drawer-icon-hidden';
     }, 3000);
-
+    this.showMessage(`Press ? for help`);
   },
 
   beforeUnmount() {
@@ -2924,8 +3000,9 @@ export default {
 
 /* History List Styles */
 .history-list {
-  max-height: 400px;
+  max-height: calc(100vh - 257px);
   overflow-y: auto;
+  overflow-y: scroll !important;
 }
 
 .history-item-current {

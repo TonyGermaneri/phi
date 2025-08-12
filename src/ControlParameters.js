@@ -7,7 +7,7 @@ const controls = [
     max: 30,
     step: 0.001,
     default: 3.6,
-    group: 'sensing',
+    group: 'sense',
     index: 0
   },
   {
@@ -18,7 +18,7 @@ const controls = [
     max: 110,
     step: 0.001,
     default: 23,
-    group: 'sensing',
+    group: 'sense',
     index: 1
   },
   {
@@ -29,7 +29,7 @@ const controls = [
     max: 2200,
     step: 0.001,
     default: 67,
-    group: 'sensing',
+    group: 'sense',
     index: 2
   },
   {
@@ -40,7 +40,7 @@ const controls = [
     max: 6,
     step: 0.001,
     default: 1.14,
-    group: 'sensing',
+    group: 'sense',
     index: 3
   },
   {
@@ -51,7 +51,7 @@ const controls = [
     max: 60,
     step: 0.001,
     default: 8.6,
-    group: 'sensing',
+    group: 'sense',
     index: 4
   },
   {
@@ -62,7 +62,7 @@ const controls = [
     max: 25,
     step: 0.001,
     default: 2.05,
-    group: 'sensing',
+    group: 'sense',
     index: 5
   },
   {
@@ -161,7 +161,7 @@ const controls = [
     max: 1.2,
     step: 0.001,
     default: 0.14,
-    group: 'sensing',
+    group: 'sense',
     index: 14
   },
   {

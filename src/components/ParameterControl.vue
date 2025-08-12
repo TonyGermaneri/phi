@@ -31,14 +31,16 @@
         :max="max"
         :step="step"
         thumb-label
-        :label="title + ': ' + modelValue.toFixed(2)"
         :hint="description"
         persistent-hint
         class="pl-6 mt-2 d-inline-block ma-0"
         style="width: 90%"
         @update:model-value="$emit('update:modelValue', $event)"
-      ></v-slider>
-
+      >
+        <template v-slot:label>
+          <div class="w-66 mx-0">{{ title + ': ' + modelValue.toFixed(Math.min(modelValue.toString().length, 4)) }}</div>
+          <div class="w-33 mx-0 text-right"><slot></slot></div></template>
+      </v-slider>
     </div>
   </div>
 </template>
