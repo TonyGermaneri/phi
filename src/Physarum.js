@@ -320,6 +320,12 @@ vec3 hsl2rgb(vec3 c) {
   return c.z + c.y * (rgb-0.5)*(1.0-abs(2.0*c.z-1.0));
 }
 
+float pingPong(float value, float length) {
+    float mod_val = mod(value, length * 2.0);
+    return mod_val <= length ? mod_val : length * 2.0 - mod_val;
+}
+
+
 void main() {
   float opacity;
   if (deposit == 1) {
@@ -350,10 +356,10 @@ void main() {
     float contrast = v[26] + v[27] * trailIntensity;
 
     // Wrap hue and clamp saturation and lightness
-    hue = mod(hue, 1.0);
-    saturation = mod(saturation, 1.0);
-    lightness = mod(lightness, 1.0);
-    contrast = mod(contrast, 2.0);
+    hue = pow(abs(mod(hue, 2.0) - 1.0), 1.5);
+    saturation = pingPong(saturation, 1.0);
+    lightness = pingPong(lightness, 1.0);
+    contrast = pingPong(contrast, 2.0);
 
     // Convert HSL to RGB
     vec3 hslColor = vec3(hue, saturation, lightness);
