@@ -437,7 +437,7 @@
                   <v-btn
                     icon
                     size="small"
-                    @click.stop="copyParameterHashByParams(preset.parameters)"
+                    @click.stop="copyParameterHashByParams(preset)"
                     class="ml-2"
                     title="Copy preset"
                   >
@@ -520,7 +520,7 @@
                     <v-btn
                       variant="text"
                       size="small"
-                      @click.stop="copyParameterHashByParams(preset.parameters)"
+                      @click.stop="copyParameterHashByParams(preset)"
                       class="mobile-action-btn"
                       title="Copy preset hash"
                     >
@@ -1597,19 +1597,13 @@ export default {
       }
     },
     async createDefaultPresets() {
-      // Create some default presets if none exist
-      const defaultPresets = [
-        {
-          title: "Default Pattern",
-          description: "Basic physarum simulation pattern",
-          parameters: [0.000, 4.000, 0.300, 0.100, 51.32, 20.00, 0.410, 4.000, 0.000, 0.100, 6.000, 0.100, 0.000, 0.000, 0.400, 0.705, 1.000, 0.300, 0.250, 8.0, 0.200, 0.800, 0.700, 0.300, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
-        }
-      ];
+      // Get the comprehensive list of default presets from the database
+      const defaultPresetConfigs = this.presetDatabase.getDefaultPresetConfigurations();
 
       try {
-        for (const preset of defaultPresets) {
-          await this.presetDatabase.saveUserPreset(preset.title, preset.description, preset.parameters);
-          this.simulation.addParameterSet(preset.parameters);
+        for (const config of defaultPresetConfigs) {
+          await this.presetDatabase.saveUserPreset(config.name, config.description, config.parameters);
+          this.simulation.addParameterSet(config.parameters);
         }
 
         // Reload presets after creating defaults
@@ -2343,17 +2337,68 @@ export default {
       }
     },
 
+    compressPresetToHash(preset) {
+      try {
+        // Create a data structure that includes parameters, name, and description
+        const presetData = {
+          title: preset.title || '',
+          description: preset.description || '',
+          parameters: preset.parameters || []
+        };
+
+        // Convert to JSON string and then to binary data
+        const jsonString = JSON.stringify(presetData);
+        const textEncoder = new TextEncoder();
+        const binaryData = textEncoder.encode(jsonString);
+
+        // Compress with zlib
+        const compressed = pako.deflate(binaryData);
+        // Convert to base64
+        return btoa(String.fromCharCode.apply(null, compressed));
+      } catch (error) {
+        console.error('Failed to compress preset:', error);
+        return '';
+      }
+    },
+
     decompressHashToParameters(hash) {
       try {
         if (!hash || hash.trim() === '') {
           return null;
         }
-        // Convert from base64
+
+        // Try to decompress as new format first (JSON with preset data)
+        try {
+          // Convert from base64
+          const binaryString = atob(hash);
+          const compressed = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            compressed[i] = binaryString.charCodeAt(i);
+          }
+
+          // Decompress with zlib
+          const decompressed = pako.inflate(compressed);
+
+          // Try to decode as UTF-8 text (new format)
+          const textDecoder = new TextDecoder();
+          const jsonString = textDecoder.decode(decompressed);
+          const presetData = JSON.parse(jsonString);
+
+          // If successful, return the preset data object
+          if (presetData && typeof presetData === 'object' && presetData.parameters) {
+            return presetData;
+          }
+        } catch (newFormatError) {
+          // If new format fails, try legacy format
+        }
+
+        // Fallback to legacy format (just parameters as Float32Array)
         const binaryString = atob(hash);
         const compressed = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           compressed[i] = binaryString.charCodeAt(i);
         }
+
         // Decompress with zlib
         const decompressed = pako.inflate(compressed);
         // Convert back to Float32Array
@@ -2370,7 +2415,21 @@ export default {
       if (this.isUpdatingHash) return;
 
       this.isUpdatingHash = true;
-      this.parameterHash = this.compressParametersToHash(this.currentParameters);
+
+      // If we have a current preset, include its title and description in the hash
+      const currentPreset = this.availablePresets[this.currentPresetIndex];
+      if (currentPreset) {
+        const presetData = {
+          title: currentPreset.title || '',
+          description: currentPreset.description || '',
+          parameters: this.currentParameters
+        };
+        this.parameterHash = this.compressPresetToHash(presetData);
+      } else {
+        // Fallback to parameters-only format
+        this.parameterHash = this.compressParametersToHash(this.currentParameters);
+      }
+
       this.$nextTick(() => {
         this.isUpdatingHash = false;
       });
@@ -2379,12 +2438,38 @@ export default {
     applyParameterHash() {
       if (this.isUpdatingHash) return;
 
-      const parameters = this.decompressHashToParameters(this.parameterHash);
-      if (parameters) {
+      const decompressedData = this.decompressHashToParameters(this.parameterHash);
+      if (decompressedData) {
         this.isUpdatingHash = true;
 
         // Store previous parameters for history
         const previousParameters = [...this.currentParameters];
+
+        let parameters;
+        let historyMessage = 'Applied parameter hash';
+
+        // Check if it's the new format (object with preset data) or legacy format (array)
+        if (Array.isArray(decompressedData)) {
+          // Legacy format - just parameters
+          parameters = decompressedData;
+        } else if (decompressedData.parameters && Array.isArray(decompressedData.parameters)) {
+          // New format - preset object with title, description, and parameters
+          parameters = decompressedData.parameters;
+
+          // Update history message to include preset info
+          if (decompressedData.title) {
+            historyMessage = `Applied preset: ${decompressedData.title}`;
+          }
+
+          // Show message about the applied preset
+          const titleInfo = decompressedData.title ? ` "${decompressedData.title}"` : '';
+          const descInfo = decompressedData.description ? ` - ${decompressedData.description}` : '';
+          this.showMessage(`Applied preset${titleInfo}${descInfo}`);
+        } else {
+          // Invalid format
+          this.isUpdatingHash = false;
+          return;
+        }
 
         // Apply parameters to simulation
         for (let i = 0; i < parameters.length && i < this.simControls.length; i++) {
@@ -2395,7 +2480,7 @@ export default {
         }
 
         // Add to history
-        this.addToHistory('Applied parameter hash', previousParameters);
+        this.addToHistory(historyMessage, previousParameters);
 
         // Save last state after hash application
         this.debouncedSaveLastState();
@@ -2410,14 +2495,22 @@ export default {
     },
     copyToClipboard(val) {
       navigator.clipboard.writeText(val).then(() => {
-        this.showMessage('Parameter hash copied to clipboard');
+        this.showMessage('Preset hash copied to clipboard');
       }).catch(err => {
         console.error('Failed to copy hash:', err);
         this.showMessage('Failed to copy hash');
       });
     },
-    copyParameterHashByParams(params) {
-      this.copyToClipboard(this.compressParametersToHash(params));
+    copyParameterHashByParams(presetOrParams) {
+      // Check if it's a preset object with title/description or just parameters
+      if (presetOrParams && typeof presetOrParams === 'object' &&
+          (presetOrParams.title !== undefined || presetOrParams.description !== undefined || presetOrParams.parameters !== undefined)) {
+        // It's a preset object - use the new compression format
+        this.copyToClipboard(this.compressPresetToHash(presetOrParams));
+      } else {
+        // It's just parameters - use the legacy format
+        this.copyToClipboard(this.compressParametersToHash(presetOrParams));
+      }
     },
     copyParameterHash(params) {
       if (this.parameterHash) {
@@ -2426,6 +2519,70 @@ export default {
     },
     selectHashInput(event) {
       event.target.select();
+    },
+
+    async createPresetFromHash(presetData) {
+      try {
+        this.isUpdatingHash = true;
+
+        // Store previous parameters for history
+        const previousParameters = [...this.currentParameters];
+
+        // Generate a unique title if one with the same name already exists
+        let finalTitle = presetData.title || 'Imported Preset';
+        let counter = 1;
+        while (this.availablePresets.some(preset => preset.title === finalTitle)) {
+          finalTitle = `${presetData.title || 'Imported Preset'} (${counter})`;
+          counter++;
+        }
+
+        // Create new preset using the preset database
+        const newPreset = await this.presetDatabase.saveUserPreset(
+          finalTitle,
+          presetData.description || 'Imported from parameter hash',
+          presetData.parameters
+        );
+
+        // Add to local presets list
+        this.availablePresets.push(newPreset);
+
+        // Add to simulation parameter sets
+        this.simulation.addParameterSet(presetData.parameters);
+
+        // Select the new preset
+        this.currentPresetIndex = this.availablePresets.length - 1;
+        this.simulation.setPreset(this.currentPresetIndex);
+
+        // Apply the parameters to current state
+        for (let i = 0; i < presetData.parameters.length && i < this.simControls.length; i++) {
+          if (presetData.parameters[i] !== undefined) {
+            this.simulation.updateParameter(i, presetData.parameters[i]);
+            this.currentParameters[i] = presetData.parameters[i];
+          }
+        }
+
+        // Add to history
+        this.addToHistory(`Created preset from hash: ${finalTitle}`, previousParameters);
+
+        // Save last state after preset creation
+        this.debouncedSaveLastState();
+
+        // Update saved state since we just created a new preset
+        this.savedParameters = [...presetData.parameters];
+        this.hasUnsavedChanges = false;
+
+        // Show success message
+        this.showMessage(`Created new preset: ${finalTitle}`);
+
+        this.$nextTick(() => {
+          this.isUpdatingHash = false;
+        });
+
+      } catch (error) {
+        console.error('Failed to create preset from hash:', error);
+        this.showMessage('Failed to create preset from hash');
+        this.isUpdatingHash = false;
+      }
     }
   },
   watch: {
@@ -2466,7 +2623,18 @@ export default {
     // Watch for hash changes and apply parameters
     parameterHash() {
       if (!this.isUpdatingHash && this.parameterHash && this.parameterHash.trim() !== '') {
-        this.applyParameterHash();
+        // First check if this is a preset with title/description that should create a new record
+        const decompressedData = this.decompressHashToParameters(this.parameterHash);
+
+        if (decompressedData && !Array.isArray(decompressedData) &&
+            decompressedData.parameters && Array.isArray(decompressedData.parameters) &&
+            (decompressedData.title || decompressedData.description)) {
+          // This is a compressed preset with metadata - create a new preset record
+          this.createPresetFromHash(decompressedData);
+        } else {
+          // Regular parameter hash - just apply the parameters
+          this.applyParameterHash();
+        }
       }
     }
   },
