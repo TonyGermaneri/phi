@@ -283,6 +283,16 @@
             Save<span v-if="hasUnsavedChanges" class="unsaved-indicator">*</span>
           </v-btn>
           <v-btn
+            color="success"
+            size="small"
+            class="mr-2 mb-2"
+            @click="createNewFromDefault"
+            title="Create new preset with default parameters"
+          >
+            <v-icon left>mdi-plus-box</v-icon>
+            New
+          </v-btn>
+          <v-btn
             color="secondary"
             size="small"
             class="mr-2 mb-2"
@@ -308,7 +318,7 @@
             title="Capture current lerp state as new preset - stops lerp transformation (Shortcut: c)"
           >
             <v-icon left>mdi-target</v-icon>
-            Capture Lerp
+            Capture
           </v-btn>
           <input
             ref="fileInput"
@@ -1636,6 +1646,38 @@ export default {
         this.hasUnsavedChanges = false;
       } catch (error) {
         console.error('Failed to save preset:', error);
+      }
+    },
+    async createNewFromDefault() {
+      try {
+        // Create new preset from default using the preset database
+        const newPreset = await this.presetDatabase.createNewPresetFromDefault();
+
+        // Add to local presets list at the beginning (top)
+        this.availablePresets.unshift(newPreset);
+
+        // Add to simulation parameter sets at the beginning
+        this.simulation.parameterSets.unshift(new Float32Array(newPreset.parameters));
+
+        // Select the new preset (it's now at index 0)
+        this.currentPresetIndex = 0;
+
+        // Apply the default parameters to the simulation immediately
+        for (let i = 0; i < newPreset.parameters.length; i++) {
+          this.simulation.updateParameter(i, newPreset.parameters[i]);
+        }
+
+        // Update current parameters and saved state
+        this.currentParameters = [...newPreset.parameters];
+        this.savedParameters = [...newPreset.parameters];
+        this.hasUnsavedChanges = false;
+
+        // Show success message
+        this.showMessage(`Created new preset "${newPreset.title}" with default parameters`);
+
+      } catch (error) {
+        console.error('Failed to create new preset from default:', error);
+        this.showMessage('Failed to create new preset from default parameters');
       }
     },
     async captureLerpAsPreset() {

@@ -602,6 +602,47 @@ class PresetDatabase {
   }
 
   /**
+   * Create a new user preset based on default parameters
+   */
+  async createNewPresetFromDefault(title = null, description = null) {
+    const defaultParams = this.getDefaultParameters();
+    
+    // Generate default title if not provided
+    if (!title) {
+      const timestamp = new Date().toLocaleString();
+      title = `New Default ${timestamp}`;
+    }
+    
+    // Generate default description if not provided
+    if (!description) {
+      description = 'New preset created from default parameters';
+    }
+    
+    // Get all presets to handle ordering
+    const allPresets = await this.getAllPresets();
+    
+    // Set listOrder to 0 to put it at the top, and increment all other presets
+    for (const existingPreset of allPresets) {
+      existingPreset.listOrder = (existingPreset.listOrder || 0) + 1;
+      await this.putPreset(existingPreset);
+    }
+    
+    // Create the new preset with listOrder 0 (top position)
+    const preset = {
+      id: this.generateUUID(),
+      title: title.trim(),
+      description: description.trim(),
+      parameters: [...defaultParams], // Deep copy
+      isDefault: false,
+      listOrder: 0, // Put at the top
+      version: 1,
+      created: new Date().toISOString(),
+      modified: new Date().toISOString()
+    };
+
+    await this.putPreset(preset);
+    return preset;
+  }  /**
    * Validate and normalize parameters array
    */
   validateParameters(parameters) {
