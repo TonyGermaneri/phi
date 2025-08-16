@@ -427,6 +427,15 @@
                   <v-btn
                     icon
                     size="small"
+                    @click.stop="copyParameterHashByParams(preset.parameters)"
+                    class="ml-2"
+                    title="Copy preset"
+                  >
+                    <v-icon size="small">mdi-content-copy</v-icon>
+                  </v-btn>
+                  <v-btn
+                    icon
+                    size="small"
                     @click.stop="downloadPreset(preset)"
                     class="ml-2"
                     title="Download preset"
@@ -440,7 +449,7 @@
                     class="ml-2"
                     title="Duplicate preset"
                   >
-                    <v-icon size="small">mdi-content-copy</v-icon>
+                    <v-icon size="small">mdi-content-duplicate</v-icon>
                   </v-btn>
                   <v-btn
                     icon
@@ -501,11 +510,12 @@
                     <v-btn
                       variant="text"
                       size="small"
-                      @click.stop="downloadPreset(preset)"
+                      @click.stop="copyParameterHashByParams(preset.parameters)"
                       class="mobile-action-btn"
+                      title="Copy preset hash"
                     >
-                      <v-icon left size="small">mdi-download</v-icon>
-                      Download
+                      <v-icon left size="small">mdi-content-copy</v-icon>
+                      Copy to Clipboard
                     </v-btn>
                     <v-btn
                       variant="text"
@@ -513,7 +523,7 @@
                       @click.stop="duplicatePreset(preset)"
                       class="mobile-action-btn"
                     >
-                      <v-icon left size="small">mdi-content-copy</v-icon>
+                      <v-icon left size="small">mdi-content-duplicate</v-icon>
                       Duplicate
                     </v-btn>
                   </div>
@@ -865,8 +875,8 @@ export default {
       playlistSpeed: 3000, // milliseconds between presets
       shuffleOrder: [],
       shuffleIndex: 0,
-      convergenceRateControl: 0.05, // Control for simulation convergence rate
-      presetDurationControl: 10, // Control for how long each preset stays active (in seconds)
+      convergenceRateControl: 0.005, // Control for simulation convergence rate
+      presetDurationControl: 25, // Control for how long each preset stays active (in seconds)
       // Progress tracking
       playlistProgress: 0, // 0-100 representing progress through current preset
       convergenceProgress: 0, // 0-100 representing convergence to target preset
@@ -2356,18 +2366,22 @@ export default {
         });
       }
     },
-
-    copyParameterHash() {
+    copyToClipboard(val) {
+      navigator.clipboard.writeText(val).then(() => {
+        this.showMessage('Parameter hash copied to clipboard');
+      }).catch(err => {
+        console.error('Failed to copy hash:', err);
+        this.showMessage('Failed to copy hash');
+      });
+    },
+    copyParameterHashByParams(params) {
+      this.copyToClipboard(this.compressParametersToHash(params));
+    },
+    copyParameterHash(params) {
       if (this.parameterHash) {
-        navigator.clipboard.writeText(this.parameterHash).then(() => {
-          this.showMessage('Parameter hash copied to clipboard');
-        }).catch(err => {
-          console.error('Failed to copy hash:', err);
-          this.showMessage('Failed to copy hash');
-        });
+        this.copyToClipboard(this.parameterHash);
       }
     },
-
     selectHashInput(event) {
       event.target.select();
     }

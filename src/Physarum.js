@@ -24,7 +24,7 @@ void main() {
       numParticles: -1,
       displayParticles: true,
       canvasZoom: 1,
-      convergenceRate: 0.05,
+      convergenceRate: 0.005,
       name: "params",
       update: true,
       pastParams: this.parameterSets[this.currentPresetIndex],
@@ -353,22 +353,25 @@ void main() {
     float hue = v[20] + v[21] * trailIntensity;
     float saturation = v[22] + v[23] * trailIntensity;
     float lightness = v[24] + v[25] * trailIntensity;
-    float contrast = v[26] + v[27] * trailIntensity;
+    float contrast = v[26];
 
     // Wrap hue and clamp saturation and lightness
     hue = pow(abs(mod(hue, 2.0) - 1.0), 1.5);
     saturation = pingPong(saturation, 1.0);
     lightness = pingPong(lightness, 1.0);
-    contrast = pingPong(contrast, 2.0);
 
     // Convert HSL to RGB
     vec3 hslColor = vec3(hue, saturation, lightness);
     color = hsl2rgb(hslColor);
 
+    // apply brightness
+    color += vec3(v[27]);
+
     // Apply contrast adjustment
-    // Formula: (color - 0.5) * contrast + 0.5
     color = (color - 0.5) * contrast + 0.5;
+
     color = clamp(color, 0.0, 1.0);
+
   }
 
   FragColor = vec4(color, opacity);
@@ -938,7 +941,6 @@ void main() {
   }
 
   touchStart(e) {
-    console.log("touch start");
     if (e.target !== document.getElementById("canvas")) {
       return;
     }
