@@ -270,7 +270,16 @@
               <v-icon @click="randomizeParameters" :class="['randomize-icon']" title="Randomize parameters by deviation % - (Shortcut: r)">mdi-dice-multiple</v-icon>
             </template>
           </v-slider>
-
+          <v-btn
+            color="success"
+            size="small"
+            class="mr-2 mb-2"
+            @click="createNewFromDefault"
+            title="Create new preset with default parameters"
+          >
+            <v-icon left>mdi-plus-box</v-icon>
+            New
+          </v-btn>
           <v-btn
             color="primary"
             size="small"
@@ -281,16 +290,6 @@
           >
             <v-icon left>mdi-content-save</v-icon>
             Save<span v-if="hasUnsavedChanges" class="unsaved-indicator">*</span>
-          </v-btn>
-          <v-btn
-            color="success"
-            size="small"
-            class="mr-2 mb-2"
-            @click="createNewFromDefault"
-            title="Create new preset with default parameters"
-          >
-            <v-icon left>mdi-plus-box</v-icon>
-            New
           </v-btn>
           <v-btn
             color="secondary"
@@ -329,7 +328,7 @@
           />
         </div>
 
-        <v-list>
+        <v-list :style="{height: 'calc(100vh - 420px)', overflowY: 'auto'}">
           <v-list-item
             v-for="(preset, index) in availablePresets"
             :key="preset.id || index"

@@ -608,217 +608,217 @@ class PresetDatabase {
     return [
       {
         name: "pure_multiscale",
-        description: "Pure multiscale pattern formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 4.000, 0.300, 0.100, 51.32, 20.00, 0.410, 4.000, 0.000, 0.100, 6.000, 0.100, 0.000, 0.000, 0.400, 0.705, 1.000, 0.300, 0.250, 8.0, 0.200, 0.800, 0.700, 0.300, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "hex_hole_open",
-        description: "Hexagonal hole open structure",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 28.04, 14.53, 0.090, 1.000, 0.000, 0.010, 1.400, 1.120, 0.830, 0.000, 0.000, 0.570, 0.030, 0.070, 0.986, 1.000, 0.230, 0.166, 6.0, 0.500, 1.200, 0.800, 0.500, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "vertebrata",
-        description: "Vertebrata-like structure formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [17.92, 0.000, 0.000, 0.520, 0.000, 0.000, 0.180, 0.000, 0.000, 0.100, 6.050, 0.170, 0.000, 0.000, 0.040, 0.973, 1.000, 0.530, 0.455, 16., 0.000, 0.600, 0.900, 0.200, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "traffic_many_lanes",
-        description: "Traffic many lanes pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [3.000, 0.000, 0.000, 0.350, 0.000, 0.000, 0.000, 0.570, 2.000, 0.010, 4.000, 0.020, 0.300, 0.000, 0.110, 0.945, 1.000, 0.180, 0.248, 16., 0.100, 1.000, 0.600, 0.400, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "tactile_extreme",
-        description: "Tactile extreme pattern formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [13.95, 7.460, 0.110, 4.040, 5.000, 0.520, 0.490, 0.580, 0.180, 7.590, 3.040, 0.160, 4.760, 0.000, 0.610, 0.975, 1.000, 0.348, 0.172, 5.0, 0.800, 0.400, 0.750, 0.600, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "star_network",
-        description: "Star network configuration",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [3.000, 10.17, 0.400, 1.030, 2.300, 2.000, 1.420, 20.00, 0.750, 0.830, 1.560, 0.110, 1.070, 0.000, 0.200, 0.951, 10.00, 0.150, 0.248, 16., 0.300, 1.500, 0.850, 0.350, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "enmeshed_singularities",
-        description: "Enmeshed singularities pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 8.510, 0.190, 0.610, 0.000, 0.000, 3.350, 0.000, 0.000, 0.750, 12.62, 0.060, 0.000, 0.000, 0.270, 0.904, 1.000, 0.060, 0.042, 7.0, 0.600, 0.800, 0.900, 0.300, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "waves_upturn",
-        description: "Waves upturn formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 0.820, 0.030, 0.1800, 0.00, 0.000, 0.260, 0.000, 0.000, 0.000, 20.00, 0.650, 0.200, 0.900, 0.140, 0.939, 1.000, 0.470, 0.430, 10., 0.150, 0.900, 0.700, 0.800, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "turing",
-        description: "Turing pattern formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 8.440, 0.080, 4.820, 0.000, 0.000, 1.190, 0.000, 0.000, 0.000, 0.330, 0.010, 0.000, 0.000, 0.040, 0.980, 1.000, 0.320, 0.172, 7.0, 0.250, 1.100, 0.650, 0.700, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "petri_worms",
-        description: "Petri worms pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [1.660, 19.26, 0.060, 1.260, 0.000, 0.000, 1.650, 0.000, 0.000, 0.060, 5.740, 0.080, 0.000, 3.040, 0.110, 0.988, 3.000, 0.134, 0.221, 19., 0.400, 0.700, 0.800, 0.400, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "a_rooting",
-        description: "A rooting pattern formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 17.54, 0.080, 0.640, 0.000, 0.000, 1.800, 0.000, 0.000, 0.100, 20.00, 0.060, 0.400, 0.000, 0.200, 0.939, 1.000, 0.200, 0.283, 14., 0.700, 0.500, 0.750, 0.500, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "more_individuals",
-        description: "More individuals pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [1.500, 1.940, 0.280, 1.730, 1.120, 0.710, 0.180, 2.220, 0.850, 0.500, 4.130, 0.110, 1.120, 0.000, 0.020, 0.850, 1.000, 0.140, 0.234, 11., 0.350, 1.300, 0.600, 0.900, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "slow_metastructure",
-        description: "Slow metastructure formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [8.340, 3.860, 0.030, 1.210, 1.400, 0.300, 1.130, 5.500, 0.390, 17.85, 8.510, 0.960, 0.000, 7.140, 0.020, 0.781, 1.000, 0.200, 0.166, 16., 0.900, 0.600, 0.850, 0.300, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "sloppy_bucky",
-        description: "Sloppy bucky structure",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [2.870, 3.040, 0.280, 0.090, 0.000, 0.000, 0.440, 0.850, 0.000, 0.000, 2.220, 0.140, 0.300, 0.850, 0.020, 0.891, 1.000, 0.140, 0.166, 21., 0.450, 0.800, 0.700, 0.600, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "massive_structure",
-        description: "Massive structure formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.140, 1.120, 0.190, 0.270, 1.400, 0.000, 1.130, 2.000, 0.390, 0.750, 2.220, 0.190, 0.000, 7.140, 0.210, 0.795, 1.000, 0.120, 0.166, 19., 0.550, 1.000, 0.900, 0.400, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "speed_modulation",
-        description: "Speed modulation pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.001, 2.540, 0.080, 0.000, 0.000, 0.000, 3.350, 0.000, 0.000, 0.100, 12.62, 0.060, 0.000, 0.000, 0.270, 0.877, 1.000, 0.250, 0.344, 5.0, 0.650, 0.900, 0.800, 0.500, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "emergent_hex_waves",
-        description: "Emergent hexagonal waves",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 20.00, 0.080, 5.280, 0.000, 0.000, 5.200, 0.000, 0.000, 1.440, 1.560, 0.060, 1.810, 0.000, 0.050, 0.987, 1.000, 0.280, 0.172, 16., 0.750, 0.700, 0.600, 0.800, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "formalisms",
-        description: "Formalisms pattern formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 17.26, 0.280, 0.350, 1.120, 0.660, 1.470, 0.570, 1.020, 0.750, 19.18, 0.390, 0.000, 1.940, 0.130, 0.959, 1.000, 0.110, 0.135, 21., 0.100, 1.400, 0.950, 0.250, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "growing_on_a_sea_of_sand",
-        description: "Growing on a sea of sand",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 89.60, 20.00, 1.300, 0.000, 0.000, 1.300, 1.400, 1.070, 0.750, 69.08, 2.220, 0.300, 0.000, 0.080, 0.959, 1.000, 0.160, 0.332, 10., 0.850, 0.500, 0.700, 0.700, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "grid_of_sorts",
-        description: "Grid of sorts formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [4.240, 75.92, 0.000, 4.390, 0.000, 0.000, 1.300, 171.7, 20.00, 6.220, 7.520, 1.120, 0.000, 0.000, 0.060, 0.877, 5.000, 0.230, 0.166, 11., 0.950, 1.200, 0.800, 0.400, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "negotiation_of_highways",
-        description: "Negotiation of highways pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [17.92, 89.60, 3.040, 2.670, 34.88, 10.70, 0.350, 294.8, 0.000, 0.001, 82.76, 20.00, 0.000, 0.000, 0.005, 0.999, 1.000, 0.330, 0.289, 6.0, 0.200, 0.800, 0.900, 0.600, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "transmission_tower",
-        description: "Transmission tower structure",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 28.04, 20.00, 0.180, 26.74, 20.00, 0.010, 1.400, 1.120, 0.830, 0.000, 0.000, 2.540, 0.000, 0.120, 0.959, 1.000, 0.230, 0.166, 5.0, 0.600, 1.100, 0.750, 0.500, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "sacred_network_nodules",
-        description: "Sacred network nodules pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [2.000, 28.04, 0.000, 0.090, 1.000, 0.000, 0.800, 2.080, 0.000, 0.000, 2.000, 0.030, 0.820, 0.000, 0.050, 0.889, 1.000, 0.200, 0.394, 16., 0.400, 0.900, 0.650, 0.750, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "positive_negative_space",
-        description: "Positive negative space formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 0.850, 0.010, 0.350, 1.400, 0.000, 1.810, 0.570, 1.450, 0.010, 4.000, 0.020, 0.300, 0.000, 0.110, 0.945, 1.000, 0.070, 0.049, 16., 0.300, 1.300, 0.800, 0.350, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "circular_consolidation",
-        description: "Circular consolidation pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [1.660, 20.00, 33.19, 1.030, 39.03, 2.540, 2.650, 364.8, 8.200, 0.050, 2.150, 2.540, 0.000, 0.000, 0.001, 0.975, 1.000, 0.160, 0.115, 14., 0.500, 1.600, 0.700, 0.650, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "radiative_nexus",
-        description: "Radiative nexus formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 9.000, 2000., 1.030, 39.03, 2.540, 2.650, 174.3, 8.200, 6.360, 5.000, 20.00, 0.000, 0.000, 0.001, 0.975, 1.000, 0.080, 0.115, 14., 0.800, 0.700, 0.850, 0.550, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "unfold_time_but_only_in_a_line",
-        description: "Unfold time but only in a line",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [17.92, 89.60, 3.040, 2.670, 34.88, 10.70, 3.350, 294.8, 0.000, 0.001, 69.76, 116.4, 0.000, 0.000, 0.005, 0.999, 1.000, 0.330, 0.289, 10., 0.150, 1.500, 0.900, 0.300, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "ink_on_white",
-        description: "Ink on white pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 20.00, 3.000, 0.260, 2.150, 4.760, 0.410, 6.600, 12.62, 0.300, 6.600, 0.037, 0.400, 0.040, 0.030, 0.926, 1.000, 0.450, 0.459, 10., 0.000, 0.000, 0.000, 1.000, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "network_time",
-        description: "Network time pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 89.60, 20.00, 1.300, 0.000, 0.000, 0.180, 1.400, 1.070, 0.750, 69.08, 2.220, 0.300, 0.000, 0.080, 0.960, 1.000, 0.160, 0.332, 7.0, 0.350, 1.100, 0.800, 0.400, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "inverse_network",
-        description: "Inverse network formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 0.800, 0.020, 0.100, 1.000, 0.000, 0.260, 0.100, 2.790, 0.830, 32.88, 37.74, 0.090, 0.330, 0.100, 0.939, 1.000, 0.430, 0.262, 3.0, 0.750, 0.600, 0.950, 0.700, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "vanishing_points",
-        description: "Vanishing points pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [27.50, 2.000, 2.540, 0.880, 26.74, 0.000, 0.090, 267.4, 1.400, 0.100, 5.000, 7.410, 1.400, 14.25, 0.140, 0.754, 1.000, 0.600, 0.627, 11., 0.900, 1.200, 0.600, 0.800, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "neuron_cluster",
-        description: "Neuron cluster formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [5.350, 6.000, 0.000, 0.100, 1.000, 0.000, 0.180, 1.000, 0.000, 0.000, 2.150, 0.330, 0.000, 0.000, 0.100, 0.840, 2.000, 0.230, 0.164, 16., 0.250, 1.400, 0.750, 0.600, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "scaling_nodule_emergence",
-        description: "Scaling nodule emergence",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 6.000, 100.0, 0.157, 1.000, 1.070, 0.000, 1.000, 5.000, 0.830, 5.000, 20.00, 0.400, 0.000, 0.003, 0.914, 1.000, 0.250, 0.361, 6.0, 0.450, 0.800, 0.700, 0.900, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "probe_emergence_from_line",
-        description: "Probe emergence from line",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.005, 6.000, 205.3, 0.000, 1.000, 1.000, 0.180, 2.200, 20.00, 0.830, 3.000, 1.320, 0.400, 0.000, 0.001, 0.939, 1.000, 0.150, 0.361, 6.0, 0.650, 1.000, 0.850, 0.500, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "hyp_offset",
-        description: "Hyp offset pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 15.00, 8.600, 0.030, 1.000, 0.000, 0.340, 2.000, 1.070, 0.220, 15.00, 0.100, 2.300, 0.820, 1.000, 0.705, 1.000, 0.420, 0.373, 8.0, 0.100, 1.800, 0.600, 0.750, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "noise",
-        description: "Noise pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 1.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.230, 0.166, 4.0, 0.500, 0.500, 0.500, 0.500, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "strike",
-        description: "Strike pattern formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 32.88, 402.0, 0.410, 3.000, 0.000, 0.100, 0.000, 0.000, 0.300, 6.000, 0.000, 0.000, 0.000, 0.090, 0.914, 1.000, 0.460, 0.290, 6.0, 0.850, 0.900, 0.700, 0.400, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "suture",
-        description: "Suture pattern formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [5.350, 2.150, 0.000, 0.340, 20.59, 0.000, 0.490, 0.100, 2.790, 0.830, 125.1, 45.11, 0.090, 0.000, 0.190, 0.975, 1.000, 0.550, 0.213, 6.0, 0.700, 1.300, 0.800, 0.600, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "surface_tension_sharp",
-        description: "Surface tension sharp pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 100.5, 20.00, 0.180, 14.44, 0.000, 1.260, 0.000, 0.000, 0.830, 75.91, 0.860, 0.300, 0.000, 0.390, 0.975, 2.000, 0.250, 0.250, 11., 0.550, 0.700, 0.900, 0.800, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "pincushion",
-        description: "Pincushion pattern formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 0.800, 0.020, 0.340, 20.59, 0.000, 0.260, 0.100, 2.790, 0.830, 125.1, 45.11, 0.580, 0.330, 0.190, 0.975, 1.000, 0.520, 0.238, 5.0, 0.300, 1.100, 0.650, 0.950, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "clear_spaghetti",
-        description: "Clear spaghetti pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [0.000, 0.800, 0.020, 5.200, 1.000, 0.000, 0.260, 0.100, 2.790, 0.830, 32.88, 37.74, 0.090, 0.330, 0.100, 0.939, 1.000, 0.450, 0.189, 6.0, 0.800, 0.800, 0.750, 0.700, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "negotiation_of_zoning",
-        description: "Negotiation of zoning pattern",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [17.92, 89.60, 3.040, 2.670, 34.88, 10.70, 5.770, 294.8, 0.000, 0.001, 82.76, 20.00, 0.000, 0.000, 0.005, 0.999, 1.000, 0.330, 0.289, 10., 0.950, 1.600, 0.550, 0.650, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       },
       {
         name: "hexa1833",
-        description: "Hexa1833 pattern formation",
+        description: "From 36 Points (2019-2022) By Sage Jenson",
         parameters: [1.829, 23.65, 0.029, 0.674, 0.500, 0.000, 1.224, 1.039, 0.000, 0.029, 3.869, 0.054, 0.409, 1.519, 0.080, 0.938, 2.000, 0.065, 0.307, 18., 0.600, 1.000, 0.800, 0.350, 0.600, 0.000, 1.000, 0.000, 0.200, 0.010, 1.00, 0.00]
       }
     ];
