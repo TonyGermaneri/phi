@@ -328,7 +328,7 @@
           />
         </div>
 
-        <v-list :style="{height: 'calc(100vh - 420px)', overflowY: 'auto'}">
+        <v-list :style="{height: isMobileDevice ? '' : 'calc(100vh - 420px)', overflowY: 'auto'}">
           <v-list-item
             v-for="(preset, index) in availablePresets"
             :key="preset.id || index"
